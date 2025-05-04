@@ -3,20 +3,19 @@ import {Expense} from '../../expense/entity/expense.entity'
 import {Method} from '../../methode/entity/method.entity'
 
 
-@Entity()
+@Entity('user')
 export class User{
-  [x: string]: any;
 @PrimaryGeneratedColumn()
 id: number; 
 
 @Column()
-lastName: string; 
+lastname: string; 
 
 @Column()
-firstName: string;
+firstname: string;
 
 @Column({type: 'date'})
-birthDate: Date;
+birthdate: Date;
 
 @Column({unique: true})
 email: string; 

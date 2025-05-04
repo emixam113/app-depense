@@ -114,7 +114,7 @@ const Inscription = () => {
           {/* Conditions générales et bouton */}
           <div className="flex flex-col items-center">
             <span className="text-[16px] text-center text-black mb-4">En cliquant, vous acceptez les conditions générale d'utilisation</span>
-            <button className="w-[229px] py-3 bg-[#DFF7E9] text-black font-bold font-poppins rounded-full shadow-lg">
+            <button className="w-[229px] py-3 bg-[#DFF7E9] text-black font-bold font-poppins rounded-full shadow-lg cursor-pointer">
               S'inscrire
             </button>
           </div>

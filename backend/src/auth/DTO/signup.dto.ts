@@ -1,24 +1,22 @@
-import {IsEmail, IsNotEmpty, IsString, MinLength, MaxLength, Matches, IsDateString} from 'class-validator';
+import {IsEmail, IsNotEmpty, MinLength, IsDateString, isNotEmpty} from 'class-validator';
 
-export class SignUpDto{
-  @IsNotEmpty({message:'First Name is required'})
-  lastName: string;
+export class SignupDTO{
+  @IsNotEmpty({message: 'Le prenom est requis'})
+  firstname: string; 
 
-  @IsNotEmpty({message: 'Last Name is required'})
-  firstName: string; 
+  @IsNotEmpty({message:'le nom est requis'})
+  lastname: string; 
 
-  @IsEmail({}, {message: "email is invalid"})
-  email: string; 
+  @IsEmail({}, {message: "Email invalide"})
+  email: string;
+  
+  @IsDateString({}, {message: "Date de Naissance Invalide"})
+  birthdate: string;
 
-  @MinLength(8, {message: 'Password must be at least 8 characters long'})
-  @MaxLength(12, {message: 'Password must be at most 12 characters long'})
-  @Matches(/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/, {message: 'Password must contain at least one uppercase letter, one lowercase letter and one number'})
-  password: string; 
+  @MinLength(8, { message: 'Le mot de passe doit faire au moins 8 caractères' })
+  password: string;
 
-  @IsNotEmpty({message: 'confirm password is required'})
-  confirmPassword: string; 
-
-  @IsDateString({}, {message: 'Birth Date is invalid'})
-  birthDate: Date; //YYY/ MM/ DD
+  @MinLength(8, { message: 'La confirmation doit faire au moins 8 caractères' })
+  confirmPassword: string;
 
 }

@@ -11,6 +11,7 @@ import { CategoryModule } from './category/category.module';
 import { databaseConfig } from './config/database.config';
 import { AuthModule } from './auth/auth.module';
 
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -27,6 +28,7 @@ import { AuthModule } from './auth/auth.module';
     ExpenseModule,
     CategoryModule,
     AuthModule,
+    
   ],
   controllers: [AppController],
   providers: [AppService],

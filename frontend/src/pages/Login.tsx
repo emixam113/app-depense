@@ -36,7 +36,7 @@ const Login = () => {
             <input
               type={showPassword ? "text" : "password"}
               id="password"
-              className="w-full px-4 py-3 rounded-lg bg-text rounded-lg text-black focus:outline-none pl-10 font-poppins"
+              className="w-full px-4 py-3 rounded-lg bg-text text-black focus:outline-none pl-10 font-poppins"
               placeholder="Password"
             />
             <span

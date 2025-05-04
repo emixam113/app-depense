@@ -1,4 +1,5 @@
 import { DataSource, DataSourceOptions } from 'typeorm';
+import * as path from 'path';
 
 export const databaseConfig: DataSourceOptions = {
   type: 'postgres',
@@ -7,9 +8,8 @@ export const databaseConfig: DataSourceOptions = {
   username: process.env.DATABASE_USERNAME || 'postgres',
   password: process.env.DATABASE_PASSWORD || 'athao03200',
   database: process.env.DATABASE_NAME || 'expense_db',
-  entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-  migrations: [__dirname + '/../migrations/**/*{.ts,.js}'],
-  synchronize: false
+  entities: [path.resolve(__dirname, '/../**/*.entity.{ts,js}')],
+  migrations: [__dirname + '/../migrations/*.ts'],  // ← simplifié
+  synchronize: false,
+  logging: ['migration', 'schema'],
 };
-
-export const AppDataSource = new DataSource(databaseConfig);

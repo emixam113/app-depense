@@ -1,4 +1,25 @@
-import { Controller } from '@nestjs/common';
+import { Injectable, BadRequestException, ConflictException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { User } from '../user/entity/user.entity';
+import { SignupDTO } from './DTO/Signup.dto';
+import * as argon2 from 'argon2';
+
+
+
+
+
+
+
+
+
+
+
+
 
 @Controller('auth')
-export class AuthController {}
+export class AuthController {
+  constructor(
+    @InjectRepository(User)
+  )
+}
