@@ -1,15 +1,18 @@
-import { DataSource, DataSourceOptions } from 'typeorm';
-import * as path from 'path';
+import { TypeOrmModuleOptions } from '@nestjs/typeorm';
+import { ConfigService } from '@nestjs/config';
+import { join } from 'path';
 
-export const databaseConfig: DataSourceOptions = {
+export const databaseConfig = (
+  configService: ConfigService,
+): TypeOrmModuleOptions => ({
   type: 'postgres',
-  host: process.env.DATABASE_HOST || 'localhost',
-  port: parseInt(process.env.DATABASE_PORT || '5432'),
-  username: process.env.DATABASE_USERNAME || 'postgres',
-  password: process.env.DATABASE_PASSWORD || 'athao03200',
-  database: process.env.DATABASE_NAME || 'expense_db',
-  entities: [path.resolve(__dirname, '/../**/*.entity.{ts,js}')],
-  migrations: [__dirname + '/../migrations/*.ts'],  // ← simplifié
+  host: configService.get<string>('DATABASE_HOST', 'localhost'),
+  port: parseInt(configService.get<string>('DATABASE_PORT', '5432'), 10),
+  username: configService.get<string>('DATABASE_USERNAME', 'postgres'),
+  password: configService.get<string>('DATABASE_PASSWORD', 'athao03200'),
+  database: configService.get<string>('DATABASE_NAME', 'expense_db'),
+  entities: [join(__dirname, '..', '**', '*.entity.{ts,js}')],
+  migrations: [join(__dirname, '..', 'migrations', '*.{ts,js}')],
   synchronize: false,
   logging: ['migration', 'schema'],
-};
+});

@@ -9,13 +9,13 @@ export class User{
 id: number; 
 
 @Column()
-lastname: string; 
+lastName: string; 
 
 @Column()
-firstname: string;
+firstName: string;
 
 @Column({type: 'date'})
-birthdate: Date;
+birthDate: Date;
 
 @Column({unique: true})
 email: string; 

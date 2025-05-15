@@ -2,16 +2,16 @@ import {IsEmail, IsNotEmpty, MinLength, IsDateString, isNotEmpty} from 'class-va
 
 export class SignupDTO{
   @IsNotEmpty({message: 'Le prenom est requis'})
-  firstname: string; 
+  firstName: string; 
 
   @IsNotEmpty({message:'le nom est requis'})
-  lastname: string; 
+  lastName: string; 
 
   @IsEmail({}, {message: "Email invalide"})
   email: string;
   
   @IsDateString({}, {message: "Date de Naissance Invalide"})
-  birthdate: string;
+  birthDate: string;
 
   @MinLength(8, { message: 'Le mot de passe doit faire au moins 8 caractères' })
   password: string;

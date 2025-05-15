@@ -4,14 +4,37 @@ import VectorIcon from "../assets/Vector.svg";
 
 
 const Login = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  const handleLogin = async () => {
+    try {
+      const response = await fetch("http://localhost:3000/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+      console.log("✅ Réponse du serveur :", data);
+    } catch (error) {
+      console.error("❌ Erreur lors de la connexion :", error);
+    }
+  };
+
+
+
+
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-botlogin">
       {/* En-tête */}
       <div className="w-full flex items-center space-x-3">
         <img src="/logo.svg" alt="Finéo Logo" className="w-44 h-44" />
-        <span className="text-black font-bold text-lg">L’outil pour la nouvelle finance</span>
+        <span className="text-black font-bold text-lg">L'outil pour la nouvelle finance</span>
       </div>
 
       {/* Titre */}
@@ -25,6 +48,8 @@ const Login = () => {
           <input
             type="email"
             placeholder="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             className="w-full px-4 py-3 rounded bg-text text-black focus:outline-none"
           />
         </div>
@@ -36,6 +61,8 @@ const Login = () => {
             <input
               type={showPassword ? "text" : "password"}
               id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3 rounded-lg bg-text text-black focus:outline-none pl-10 font-poppins"
               placeholder="Password"
             />
@@ -51,19 +78,21 @@ const Login = () => {
 
         {/* Bouton Se connecter */}
         <div className="flex justify-center mt-6">
-          <button className="w-[229px] py-3 bg-[#DFF7E9] text-black font-bold font-poppins rounded-full shadow-lg">
+          <button
+            onClick={handleLogin}
+            className="w-[229px] py-3 bg-[#DFF7E9] text-black font-bold font-poppins rounded-full shadow-lg">
             Se Connecter
           </button>
         </div>
 
         {/* Lien Inscription */}
         <p className="text-center mt-6 text-black">
-          Pas encore de compte ? <a href="/Inscription" className="text-gray-500">S’inscrire</a>
-          
+          Pas encore de compte ? <a href="/Inscription" className="text-gray-500">S'inscrire</a>
+
         </p>
       </div>
     </div>
   );
 };
 
-export default Login;
+export default Login
