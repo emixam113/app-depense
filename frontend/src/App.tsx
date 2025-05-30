@@ -2,7 +2,8 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
 import Home from "./pages/Home.tsx"
 import Login from "./pages/Login.tsx"
-import Inscription from "./pages/Inscription.tsx"
+import ForgotPassword from './pages/forgotPassword.tsx'
+import Signup from './pages/Signup.tsx';
 
 function App() {
 
@@ -12,7 +13,8 @@ function App() {
         <Routes>
           <Route path="/" element={<Home/>} />
           <Route path="/Login" element={<Login/>}/>
-          <Route path="/Inscription" element={<Inscription/>}/>
+          <Route path="/Signup" element={<Signup/>}/>
+          <Route path="/forgot-password" element={<ForgotPassword/>}/>
         </Routes>
       </Router>
   )

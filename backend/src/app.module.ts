@@ -12,6 +12,7 @@ import { ExpenseModule } from './expense/expense.module';
 import { CategoryModule } from './category/category.module';
 import { AuthModule } from './auth/auth.module';
 import { databaseConfig } from './config/database.config';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { databaseConfig } from './config/database.config';
     ExpenseModule,
     CategoryModule,
     AuthModule,
+    MailModule,
   ],
   controllers: [AppController],
   providers: [AppService],

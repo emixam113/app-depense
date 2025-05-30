@@ -19,12 +19,14 @@ const Home: React.FC = () => {
             S'inscrire
           </Link>
         </button>
-        <p className="text-gray-500 cursor-pointer hover:underline">
+      
+        <Link to="/forgot-password" className="text-gray-500 cursor-pointer hover:underline">
           Mot de passe oublié ?
-        </p>
+        </Link>
+       
       </div>
     </div>
   );
 };
 
-export default Home;
+export default Home

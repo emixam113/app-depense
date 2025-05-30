@@ -1,6 +1,7 @@
 import { useState } from "react";
 import EyePassIcon from "../assets/Eye-Pass.svg";
 import VectorIcon from "../assets/Vector.svg";
+import {Link} from 'react-router-dom'
 
 
 const Login = () => {
@@ -19,9 +20,9 @@ const Login = () => {
       });
 
       const data = await response.json();
-      console.log("✅ Réponse du serveur :", data);
+      console.log("Réponse du serveur :", data);
     } catch (error) {
-      console.error("❌ Erreur lors de la connexion :", error);
+      console.error("Erreur lors de la connexion :", error);
     }
   };
 
@@ -73,7 +74,9 @@ const Login = () => {
               {showPassword ? <img src={VectorIcon} alt="Hide Password" /> : <img src={EyePassIcon} alt="Show Password" />}
             </span>
           </div>
-          <p className="text-sm text-black mt-2 cursor-pointer text-left">Mot de passe oublié ?</p>
+          <Link to="/forgot-password" className="text-sm text-black mt-2 cursor-pointer text-left">
+            Mot de passe oublié ?
+          </Link>
         </div>
 
         {/* Bouton Se connecter */}
@@ -96,3 +99,4 @@ const Login = () => {
 };
 
 export default Login
+  

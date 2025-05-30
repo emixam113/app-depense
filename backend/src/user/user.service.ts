@@ -7,6 +7,9 @@ import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UserService {
+  async findByEmail(email: string): Promise<User | null> {
+    return this.userRepository.findOne({ where: { email } });
+  }
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>
@@ -33,18 +36,26 @@ export class UserService {
   }
 
   //update 
-  async update(id: number, UpdateUserDto: UpdateUserDto): Promise<User>{
+  async update(id: number, UpdateUserDto: UpdateUserDto): Promise<User> {
     const user = await this.findOne(id)
     const update = Object.assign(user, UpdateUserDto)
     return this.userRepository.save(update);
   }
 
   //delete user 
-  async remove(id: number): Promise<void>{
-   const result = await this.userRepository.delete(id)
-   if(result.affected === 0){
-    throw new NotFoundException(`User with ${id} not found`)
-   }
+  async remove(id: number): Promise<void> {
+    const result = await this.userRepository.delete(id)
+    if (result.affected === 0) {
+      throw new NotFoundException(`User with ${id} not found`)
+    }
   }
 
+  async updatePassword(email: string, newPassword: string): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { email } });
+    if (!user) {
+      throw new NotFoundException(`User with email ${email} not found`);
+    }
+    user.password = newPassword;
+    return this.userRepository.save(user);
+  }
 }

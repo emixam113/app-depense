@@ -1,4 +1,3 @@
-// src/auth/auth.module.ts
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
@@ -7,11 +6,12 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { User } from '../user/entity/user.entity';
+import { UserModule } from '../user/user.module'; 
 
 @Module({
   imports: [
-    ConfigModule, // Pour accéder aux variables d'environnement
-    TypeOrmModule.forFeature([User]), // Permet à AuthService d'accéder à la table User
+    ConfigModule,
+    TypeOrmModule.forFeature([User]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -22,6 +22,7 @@ import { User } from '../user/entity/user.entity';
         },
       }),
     }),
+    UserModule, 
   ],
   controllers: [AuthController],
   providers: [AuthService],
