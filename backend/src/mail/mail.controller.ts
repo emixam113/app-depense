@@ -20,8 +20,8 @@ export class MailController {
     }
     
    //comparaison entre Date et string
-   const formatedBirthDate = user.birthDate.toISOString().split('T')[0];
-   if (formatedBirthDate !== birthDate){
+  const formatedBirthDate = user.birthDate.toISOString().split('T')[0];
+  if (formatedBirthDate !== birthDate){
     throw new NotFoundException('les informations ne correspondent pas')
    }
 
