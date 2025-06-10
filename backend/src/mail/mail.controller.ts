@@ -1,33 +1,43 @@
-import {Controller, Post, Body, NotFoundException} from '@nestjs/common'; 
-import {MailService} from './mail.service';
-import {UserService} from '../user/user.service';
+import { Controller, Post, Body, Get, Query, BadRequestException } from '@nestjs/common';
+import { MailService } from './mail.service';
+import { UserService } from '../user/user.service';
 
 @Controller('mail')
 export class MailController {
   constructor(
     private readonly mailService: MailService,
-    private readonly userService: UserService
+    private readonly userService: UserService,
   ) {}
 
-  @Post('reset-password')
-  async sendResetPassword(
-    @Body('email') email: string,
-    @Body('birthDate') birthDate: string
-  ){
-    const user = await this.userService.findByEmail(email);
-    if(!user){
-      throw new NotFoundException('Aucun utilisateur trouvé avec cet email');
+  @Post('test')
+  async sendTestEmail(@Body('email') email: string) {
+    if (!email) {
+      throw new BadRequestException('Email is required');
     }
+    return this.mailService.sendTestEmail(email);
+  }
+
+  @Post('reset-password')
+  async sendResetPassword(@Body('email') email: string) {
+    if (!email) {
+      throw new BadRequestException('Email is required');
+    }
+
+    // Chercher l'utilisateur par email
+    const user = await this.userService.findByEmail(email);
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    // Generate a reset token (you might want to use a proper token generation logic)
+    const resetToken = 'generated-token-here'; // Replace with your token generation logic
     
-   //comparaison entre Date et string
-  const formatedBirthDate = user.birthDate.toISOString().split('T')[0];
-  if (formatedBirthDate !== birthDate){
-    throw new NotFoundException('les informations ne correspondent pas')
-   }
+    // Send the password reset email
+    await this.mailService.sendPasswordResetEmail(user.email, resetToken, user.firstName);
 
-   //envoie de l'email de reinitialisation de mot de passe 
-   const token = await this.mailService.sendResetPasswordConfirmation(email, user.firstName);
-
-   return {message: 'Email envoyé', token};
+    return {
+      message: 'Email de réinitialisation envoyé',
+      tokenSent: resetToken, 
+    };
   }
 }

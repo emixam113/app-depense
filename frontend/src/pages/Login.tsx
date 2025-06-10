@@ -25,11 +25,7 @@ const Login = () => {
       console.error("Erreur lors de la connexion :", error);
     }
   };
-
-
-
-
-
+  
   return (
     <div className="flex flex-col items-center min-h-screen bg-botlogin">
       {/* En-tête */}
@@ -90,7 +86,7 @@ const Login = () => {
 
         {/* Lien Inscription */}
         <p className="text-center mt-6 text-black">
-          Pas encore de compte ? <a href="/Inscription" className="text-gray-500">S'inscrire</a>
+          Pas encore de compte ? <a href="/signup" className="text-gray-500">S'inscrire</a>
 
         </p>
       </div>

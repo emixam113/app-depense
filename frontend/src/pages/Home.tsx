@@ -10,12 +10,12 @@ const Home: React.FC = () => {
         />
         <h1 className="text-lg font-bold text-center mb-2">l'outil pour la nouvelle finance</h1>
         <button className="w-48 py-2 mt-2 font-bold rounded-full bg-primary m-4 cursor-pointer">
-          <Link to="/Login">
+          <Link to="/login">
             Se Connecter
           </Link>
         </button>
         <button className="w-48 py-2 mt-2 font-bold rounded-full bg-secondary m-4 cursor-pointer">
-          <Link to="/Inscription">
+          <Link to="/signup">
             S'inscrire
           </Link>
         </button>

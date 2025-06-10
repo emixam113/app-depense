@@ -1,8 +1,8 @@
-import { Controller, Post, Body, NotFoundException } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, BadRequestException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignupDTO } from './DTO/Signup.dto';
 import { LoginDto } from './DTO/login.dto';
-import { CreateUserDto } from 'src/user/dto/create-user.dto';
+import {ResetPasswordDto} from './DTO/reset-password.dto'
 import { UserService } from '../user/user.service';
 
 @Controller('auth')
@@ -31,16 +31,37 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
-  @Post('reset-password')
-  async resetPassword(@Body() body: { email: string; newPassword: string }) {
-    const { email, newPassword } = body;
-
-    const result = await this.userService.updatePassword(email, newPassword);
-
-    if (!result) {
-      throw new NotFoundException("Utilisateur non trouvé");
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.ACCEPTED)
+  async forgotPassword(@Body() body: { email?: string, birthdate?: string }) {
+    if (!body.email || !body.birthdate) {
+      throw new BadRequestException('Email et date de naissance sont requis');
     }
+    
+    // Nettoyer et valider l'email
+    const email = body.email.trim().toLowerCase();
+    if (!email.includes('@')) {
+      throw new BadRequestException('Format d\'email invalide');
+    }
+    
+    // Nettoyer la date de naissance
+    const birthdate = body.birthdate.trim();
+    
+    return this.authService.requestPasswordReset(email, birthdate);
+  }
 
-    return { success: true, message: 'Mot de passe mis à jour avec succès.' };
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    try {
+      const result = await this.authService.resetPassword(
+        resetPasswordDto.token,
+        resetPasswordDto.newPassword,
+        resetPasswordDto.email
+      );
+      return { success: true, message: result.message };
+    } catch (error) {
+      throw new BadRequestException(error.message || 'Erreur lors de la réinitialisation du mot de passe');
+    }
   }
 }

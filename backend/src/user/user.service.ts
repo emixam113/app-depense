@@ -51,11 +51,15 @@ export class UserService {
   }
 
   async updatePassword(email: string, newPassword: string): Promise<User> {
+    console.log('updatePassword called with email:', email);
+    console.log('updatePassword called with newPassword (pre-hash):', newPassword);
     const user = await this.userRepository.findOne({ where: { email } });
     if (!user) {
+      console.error('User not found for email:', email);
       throw new NotFoundException(`User with email ${email} not found`);
     }
     user.password = newPassword;
+    console.log('User object before saving new password:', JSON.stringify(user, null, 2));
     return this.userRepository.save(user);
   }
 }

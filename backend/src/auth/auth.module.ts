@@ -2,16 +2,19 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { User } from '../user/entity/user.entity';
-import { UserModule } from '../user/user.module'; 
+import { UserModule } from '../user/user.module';
+import { ResetToken } from './entity/reset-token.entity';
+import { ResetTokenService } from './reset-token.service';
+import { MailModule } from '../mail/mail.module';
 
 @Module({
   imports: [
     ConfigModule,
-    TypeOrmModule.forFeature([User]),
+    MailModule,
+    TypeOrmModule.forFeature([User, ResetToken]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -25,6 +28,6 @@ import { UserModule } from '../user/user.module';
     UserModule, 
   ],
   controllers: [AuthController],
-  providers: [AuthService],
+  providers: [AuthService, ResetTokenService],
 })
 export class AuthModule {}

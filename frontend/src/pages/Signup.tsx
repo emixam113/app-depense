@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import EyePassIcon from "../assets/Eye-Pass.svg";
 import VectorIcon from "../assets/Vector.svg";
 
-const Inscription = () => {
+const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +60,7 @@ const Inscription = () => {
 
       // Redirection après 2 secondes
       setTimeout(() => {
-        navigate("/Login");
+        navigate("/login");
       }, 2000);
     } catch (err: any) {
       setError(err.message);
@@ -203,4 +203,4 @@ const Inscription = () => {
   );
 };
 
-export default Inscription;
+export default Signup;
