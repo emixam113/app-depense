@@ -51,26 +51,52 @@ export class AuthService {
 
   async login(loginDto: LoginDto) {
     const { email, password } = loginDto;
+    console.log(`Tentative de connexion pour l'email: ${email}`);
 
-    const user = await this.userRepository.findOne({ where: { email } });
-    if (!user || !(await argon2.verify(user.password, password))) {
-      throw new BadRequestException('Invalid credentials');
+    // Récupérer l'utilisateur avec tous les champs nécessaires
+    const user = await this.userRepository.findOne({ 
+      where: { email },
+      select: ['id', 'email', 'password', 'firstName', 'lastName']
+    });
+    
+    if (!user) {
+      console.error(`Échec de connexion: Aucun utilisateur trouvé avec l'email ${email}`);
+      throw new BadRequestException('Identifiants invalides');
     }
 
-    const payload = { sub: user.id, email: user.email };
+    const isPasswordValid = await argon2.verify(user.password, password);
+    if (!isPasswordValid) {
+      console.error(`Échec de connexion: Mot de passe incorrect pour l'utilisateur ${email}`);
+      throw new BadRequestException('Identifiants invalides');
+    }
+
+    console.log(`Connexion réussie pour l'utilisateur ${email}`);
+    const payload = { 
+      sub: user.id, 
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName
+    };
+    
     return {
       access_token: this.jwtService.sign(payload),
+      user: {
+        id: user.id,
+        email: user.email,
+        firstname: user.firstName,
+        lastname: user.lastName
+      }
     };
   }
 
-  async requestPasswordReset(email: string, birthdate: string) {
+  async requestPasswordReset(email: string, birthdate: string): Promise<{ success: boolean; message: string }> {
     try {
       console.log('Données reçues - email:', email, 'birthdate:', birthdate, 'type:', typeof birthdate);
       
       // Vérifier que birthdate est défini et n'est pas vide
       if (!birthdate || typeof birthdate !== 'string' || birthdate.trim() === '') {
         console.log('Date de naissance manquante ou invalide');
-        return { message: 'La date de naissance est requise' };
+        return { success: false, message: 'La date de naissance est requise' };
       }
       
       // Valider le format de la date
@@ -81,7 +107,7 @@ export class AuthService {
       // Vérifier que la date est valide
       if (!day || !month || !year || isNaN(day) || isNaN(month) || isNaN(year)) {
         console.log(`Format de date invalide (attendu JJ-MM-AAAA ou JJ/MM/AAAA): ${birthdate}`);
-        return { message: 'Format de date invalide. Utilisez le format JJ-MM-AAAA ou JJ/MM/AAAA' };
+        return { success: false, message: 'Format de date invalide. Utilisez le format JJ-MM-AAAA ou JJ/MM/AAAA' };
       }
       
       // Créer une date en UTC (mois est 0-indexé, donc on soustrait 1)
@@ -93,7 +119,7 @@ export class AuthService {
           birthDateObj.getUTCMonth() !== month - 1 || 
           birthDateObj.getUTCFullYear() !== year) {
         console.log(`Date invalide: ${day}/${month}/${year}`);
-        return { message: 'Date de naissance invalide' };
+        return { success: false, message: 'Date de naissance invalide' };
       }
       
       // Formater la date en YYYY-MM-DD pour la comparaison
@@ -106,29 +132,28 @@ export class AuthService {
         select: ['id', 'email', 'firstName', 'birthDate']
       });
       
-      if (user) {
-        // Formater la date de la base de données au même format
-        const dbDate = new Date(user.birthDate);
-        const dbFormattedDate = [
-          dbDate.getUTCFullYear(),
-          String(dbDate.getUTCMonth() + 1).padStart(2, '0'),
-          String(dbDate.getUTCDate()).padStart(2, '0')
-        ].join('-');
-        
-        console.log('Date de naissance en base pour cet utilisateur:', dbFormattedDate);
-        
-        if (formattedDate !== dbFormattedDate) {
-          console.log(`Les dates ne correspondent pas: ${formattedDate} (saisie) vs ${dbFormattedDate} (base)`);
-          return { message: 'Si un compte avec cet email existe, un code de réinitialisation a été envoyé' };
-        }
-      }
-      
       console.log('Utilisateur trouvé:', !!user);
       
-      // Ne pas révéler si l'utilisateur n'existe pas ou si la date de naissance ne correspond pas
+      // Vérifier si l'utilisateur existe
       if (!user) {
-        console.log(`Tentative de réinitialisation pour un email inconnu ou date de naissance incorrecte: ${email}`);
-        return { message: 'Si un compte avec cet email existe, un code de réinitialisation a été envoyé' };
+        console.log(`Tentative de réinitialisation pour un email inconnu: ${email}`);
+        throw new NotFoundException('Aucun compte trouvé avec cet email');
+      }
+      
+      // Formater la date de la base de données au même format
+      const dbDate = new Date(user.birthDate);
+      const dbFormattedDate = [
+        dbDate.getUTCFullYear(),
+        String(dbDate.getUTCMonth() + 1).padStart(2, '0'),
+        String(dbDate.getUTCDate()).padStart(2, '0')
+      ].join('-')
+      
+      console.log('Date de naissance en base pour cet utilisateur:', dbFormattedDate);
+      
+      // Vérifier si la date de naissance correspond
+      if (formattedDate !== dbFormattedDate) {
+        console.log(`Date de naissance incorrecte pour l'email: ${email}`);
+        throw new BadRequestException('Les informations fournies ne correspondent à aucun compte');
       }
 
       // Générer un jeton
@@ -137,37 +162,45 @@ export class AuthService {
       // Envoyer l'email
       await this.mailService.sendPasswordResetEmail(user.email, resetToken.token, user.firstName);
 
-      return { message: 'Si un compte avec cet email existe, un lien de réinitialisation a été envoyé' };
+      return { success: true, message: 'Si un compte avec cet email existe, un lien de réinitialisation a été envoyé' };
     } catch (error) {
       console.error('Erreur dans requestPasswordReset:', error);
-      return { message: 'Une erreur est survenue lors du traitement de votre demande' };
+      return { success: false, message: 'Une erreur est survenue lors du traitement de votre demande' };
     }
   }
 
-  async resetPassword(token: string, newPassword: string, email: string) {
-    console.log('resetPassword called with email:', email);
-    
-    // Valider le jeton avec l'email
-    const resetToken = await this.resetTokenService.validateToken(token, email);
-    if (!resetToken) {
-      console.error('Invalid or expired token for email:', email);
-      throw new BadRequestException('Lien de réinitialisation invalide, expiré ou ne correspondant pas à cet email');
-    }
-
+  async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<{ success: boolean; message: string }> {
     try {
-      // Mettre à jour le mot de passe en utilisant le service utilisateur
-      console.log('Updating password for user:', resetToken.user.id);
-      const hashedPassword = await argon2.hash(newPassword);
-      await this.userService.updatePassword(email, hashedPassword);
+      const { token, newPassword, email } = resetPasswordDto;
 
-      // Marquer le jeton comme utilisé
+      // Vérifier le token
+      const resetToken = await this.resetTokenService.validateToken(token, email);
+      if (!resetToken) {
+        return { success: false, message: 'Lien de réinitialisation invalide ou expiré' };
+      }
+
+      // Vérifier si le token a déjà été utilisé
+      if (resetToken.used) {
+        return { success: false, message: 'Ce lien de réinitialisation a déjà été utilisé' };
+      }
+
+      // Mettre à jour le mot de passe de l'utilisateur
+      await this.userService.updatePassword(email, newPassword);
+
+      // Marquer le token comme utilisé
       await this.resetTokenService.markAsUsed(resetToken);
-      console.log('Password updated successfully for user:', resetToken.user.id);
+      console.log('Mot de passe réinitialisé avec succès pour l\'utilisateur:', resetToken.user.id);
 
-      return { message: 'Mot de passe réinitialisé avec succès' };
+      return { 
+        success: true, 
+        message: 'Mot de passe réinitialisé avec succès' 
+      };
     } catch (error) {
-      console.error('Error in resetPassword:', error);
-      throw new BadRequestException('Erreur lors de la réinitialisation du mot de passe');
+      console.error('Erreur lors de la réinitialisation du mot de passe:', error);
+      return { 
+        success: false, 
+        message: 'Erreur lors de la réinitialisation du mot de passe' 
+      };
     }
   }
 

@@ -17,6 +17,7 @@ describe('AuthController', () => {
           useValue: {
             signup: jest.fn().mockResolvedValue({ success: true }),
             login: jest.fn().mockResolvedValue({ accessToken: 'fake-token' }),
+            resetPassword: jest.fn().mockResolvedValue({ success: true, message: 'Mot de passe mis à jour avec succès.' }),
           },
         },
         {
@@ -61,10 +62,17 @@ describe('AuthController', () => {
   });
 
   it('should update password and return success message', async () => {
-    const body = { email: 'test@example.com', newPassword: 'newpass' };
+    const resetPasswordDto = {
+      token: 'test-token',
+      newPassword: 'newpass',
+      email: 'test@example.com'
+    };
 
-    const result = await authController.resetPassword(body);
-    expect(userService.updatePassword).toHaveBeenCalledWith('test@example.com', 'newpass');
+    const result = await authController.resetPassword(resetPasswordDto);
+    
+    // Verify authService.resetPassword was called with the correct DTO
+    expect(authService.resetPassword).toHaveBeenCalledWith(resetPasswordDto);
+    // Verify the response matches what we expect
     expect(result).toEqual({ success: true, message: 'Mot de passe mis à jour avec succès.' });
   });
 });

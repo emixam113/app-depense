@@ -50,9 +50,12 @@ describe('UserController', () => {
 
   it('should create a new user', async () => {
     const dto: CreateUserDto = {
-      username: 'testuser',
+      lastname: "maxime",
       email: 'test@example.com',
       password: 'testpass',
+      firstname: '',
+      birthdate: '',
+      confirmPassword: ''
     };
 
     const result = await controller.create(dto);

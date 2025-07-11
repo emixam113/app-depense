@@ -70,7 +70,12 @@ export class ExpenseService {
 
     return this.expenseRepository.save(expense);
   }
-
+  async findOneWithCategory(id: number): Promise<Expense> {
+    return this.expenseRepository.findOne({
+      where: { id },
+      relations: ['category'], // très important
+    });
+  }
   async remove(id: number): Promise<void> {
     const expense = await this.expenseRepository.findOneBy({ id });
     if (!expense) throw new NotFoundException('Expense not found');

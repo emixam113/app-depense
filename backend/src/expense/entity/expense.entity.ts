@@ -13,6 +13,9 @@ export class Expense {
   @Column('decimal', {precision: 10, scale: 2})
   amount: number;
 
+  @Column({ type: 'varchar', default: 'expense' })
+  type: 'expense' | 'income';
+
   @Column()
   date: Date;
 

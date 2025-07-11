@@ -18,10 +18,11 @@ export class ExpenseController {
   constructor(private readonly expenseService: ExpenseService) {}
 
   @Post()
-  create(@Body() dto: CreateExpenseDto): Promise<Expense> {
-    return this.expenseService.create(dto);
+  async create(@Body() dto: CreateExpenseDto): Promise<Expense> {
+    const created = await this.expenseService.create(dto);
+    return this.expenseService.findOneWithCategory(created.id); // Returns the expense with the category relation
   }
-
+  
   @Get()
   findAll(): Promise<Expense[]> {
     return this.expenseService.findAll();
