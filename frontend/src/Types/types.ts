@@ -1,7 +1,8 @@
+// Interface pour une catégorie
 export interface Category {
   id: number;
   name: string;
-  // Ajoutez d'autres propriétés de catégorie si nécessaire
+  color: string;
 }
 
 export interface Expense {
@@ -11,5 +12,8 @@ export interface Expense {
   date: string;
   category: Category | null;
   type: 'expense' | 'income';
-  // Ajoutez d'autres propriétés si nécessaire
+}
+
+export interface CategoryListProps {
+  token: string | null;
 }
