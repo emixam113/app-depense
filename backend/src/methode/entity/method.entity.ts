@@ -18,6 +18,6 @@ export class Method {
   @Column('float')
   savingBudget: number;
 
-  @ManyToOne(() => User, (user) => user.method)
+  @ManyToOne(() => User, (user) => user.methods)
   user: User;
 }

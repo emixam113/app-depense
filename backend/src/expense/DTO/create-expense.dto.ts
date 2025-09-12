@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsDateString, IsOptional, IsInt } from 'class-validator';
+import { IsString, IsNumber, IsDateString, IsOptional, IsInt, IsIn } from 'class-validator';
 
 export class CreateExpenseDto {
   @IsString()
@@ -9,6 +9,9 @@ export class CreateExpenseDto {
 
   @IsDateString()
   date: string;
+
+  @IsIn(['expense', 'income'])
+  type: 'expense' | 'income';
 
   @IsOptional()
   @IsInt()

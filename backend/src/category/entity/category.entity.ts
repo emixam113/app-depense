@@ -1,4 +1,4 @@
-import {Entity, PrimaryGeneratedColumn, Column, OneToMany} from 'typeorm'; 
+import {Entity, PrimaryGeneratedColumn, Column, OneToMany, } from 'typeorm';
 import {Expense} from '../../expense/entity/expense.entity';
 
 @Entity('category')
@@ -7,7 +7,10 @@ export class Category{
   id: number; 
 
   @Column()
-  name: string; 
+  name: string;
+
+  @Column({default: "#000000"})
+  color: string;
 
   @OneToMany( () => Expense, (expense) => expense.category)
   expenses: Expense[];

@@ -15,12 +15,14 @@ describe('ExpenseController', () => {
     label: 'Test Expense',
     amount: 100,
     date: new Date(),
+    type: 'expense',
     user: { id: 1, email: 'test@test.com' } as any,
     category: { id: 1, name: 'Test Category' } as any,
   };
 
   const mockExpenseService = {
     create: jest.fn().mockResolvedValue(mockExpense),
+    findOneWithCategory: jest.fn().mockResolvedValue(mockExpense),
     findAll: jest.fn().mockResolvedValue([mockExpense]),
     findOne: jest.fn().mockResolvedValue(mockExpense),
     update: jest.fn().mockResolvedValue({ ...mockExpense, label: 'Updated Expense' }),
@@ -58,11 +60,13 @@ describe('ExpenseController', () => {
         date: new Date().toISOString(),
         userId: 1,
         categoryId: 1,
+        type: 'expense', // obligatoire
       };
 
       const result = await controller.create(createExpenseDto);
-      
+
       expect(service.create).toHaveBeenCalledWith(createExpenseDto);
+      expect(service.findOneWithCategory).toHaveBeenCalledWith(result.id);
       expect(result).toEqual(mockExpense);
     });
   });
@@ -70,7 +74,7 @@ describe('ExpenseController', () => {
   describe('findAll', () => {
     it('should return an array of expenses', async () => {
       const result = await controller.findAll();
-      
+
       expect(service.findAll).toHaveBeenCalled();
       expect(result).toEqual([mockExpense]);
     });
@@ -79,14 +83,14 @@ describe('ExpenseController', () => {
   describe('findOne', () => {
     it('should return a single expense by id', async () => {
       const result = await controller.findOne(1);
-      
+
       expect(service.findOne).toHaveBeenCalledWith(1);
       expect(result).toEqual(mockExpense);
     });
 
     it('should throw NotFoundException when expense is not found', async () => {
       jest.spyOn(service, 'findOne').mockRejectedValueOnce(new NotFoundException());
-      
+
       await expect(controller.findOne(999)).rejects.toThrow(NotFoundException);
     });
   });
@@ -98,14 +102,14 @@ describe('ExpenseController', () => {
       };
 
       const result = await controller.update(1, updateExpenseDto);
-      
+
       expect(service.update).toHaveBeenCalledWith(1, updateExpenseDto);
       expect(result.label).toBe('Updated Expense');
     });
 
     it('should throw NotFoundException when updating non-existent expense', async () => {
       jest.spyOn(service, 'update').mockRejectedValueOnce(new NotFoundException());
-      
+
       await expect(controller.update(999, {})).rejects.toThrow(NotFoundException);
     });
   });
@@ -113,14 +117,15 @@ describe('ExpenseController', () => {
   describe('remove', () => {
     it('should remove an expense', async () => {
       await controller.remove(1);
-      
+
       expect(service.remove).toHaveBeenCalledWith(1);
     });
 
     it('should throw NotFoundException when removing non-existent expense', async () => {
       jest.spyOn(service, 'remove').mockRejectedValueOnce(new NotFoundException());
-      
+
       await expect(controller.remove(999)).rejects.toThrow(NotFoundException);
     });
   });
 });
+

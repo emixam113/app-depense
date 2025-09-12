@@ -13,7 +13,7 @@ export class CategoryController{
   //create new category
   @Post()
   create(@Body() dto: CreateCategoryDto): Promise<Category>{
-   return this.categoryService.create(CreateCategoryDto);
+   return this.categoryService.create(dto);
 }
 
 //get all categories

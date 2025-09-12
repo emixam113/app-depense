@@ -3,15 +3,15 @@ import { IsString, IsEmail, IsDateString, MinLength, IsNotEmpty } from 'class-va
 export class CreateUserDto {
   @IsNotEmpty()
   @IsString()
-  lastname: string;
+  lastName: string;
 
   @IsNotEmpty()
   @IsString()
-  firstname: string;
+  firstName: string;
 
   @IsNotEmpty()
   @IsDateString()
-  birthdate: string; // Ou Date selon votre configuration
+  birthDate: string; // Ou Date selon votre configuration
 
   @IsNotEmpty()
   @IsEmail()

@@ -11,21 +11,21 @@ describe('UserController', () => {
 
   const mockUser: User = {
     id: 1,
-    username: 'testuser',
     email: 'test@example.com',
     password: 'hashedpassword',
-    lastName: '',
-    firstName: '',
-    birthDate: undefined,
-    expense: [],
-    method: []
+    lastName: 'Doe',
+    firstName: 'John',
+    birthDate: new Date('1990-01-01'),
+    expenses: [],
+    methods: [],
+    resetTokens: [],
   };
 
   const mockUserService = {
     create: jest.fn().mockResolvedValue(mockUser),
     findAll: jest.fn().mockResolvedValue([mockUser]),
     findOne: jest.fn().mockResolvedValue(mockUser),
-    update: jest.fn().mockResolvedValue({ ...mockUser, username: 'updateduser' }),
+    update: jest.fn().mockResolvedValue({ ...mockUser, firstName: 'UpdatedJohn' }),
     remove: jest.fn().mockResolvedValue(undefined),
   };
 
@@ -33,10 +33,7 @@ describe('UserController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UserController],
       providers: [
-        {
-          provide: UserService,
-          useValue: mockUserService,
-        },
+        { provide: UserService, useValue: mockUserService },
       ],
     }).compile();
 
@@ -50,12 +47,12 @@ describe('UserController', () => {
 
   it('should create a new user', async () => {
     const dto: CreateUserDto = {
-      lastname: "maxime",
+      lastName: 'Doe',
+      firstName: 'John',
+      birthDate: '1990-01-01',
       email: 'test@example.com',
       password: 'testpass',
-      firstname: '',
-      birthdate: '',
-      confirmPassword: ''
+      confirmPassword: 'testpass',
     };
 
     const result = await controller.create(dto);
@@ -76,9 +73,9 @@ describe('UserController', () => {
   });
 
   it('should update a user by id', async () => {
-    const dto: UpdateUserDto = { username: 'updateduser' };
+    const dto: UpdateUserDto = { firstName: 'UpdatedJohn' };
     const result = await controller.update(1, dto);
-    expect(result.username).toEqual('updateduser');
+    expect(result.firstName).toEqual('UpdatedJohn');
     expect(service.update).toHaveBeenCalledWith(1, dto);
   });
 

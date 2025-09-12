@@ -24,16 +24,23 @@ export class ExpenseService {
     const user = await this.userRepository.findOneBy({ id: dto.userId });
     if (!user) throw new NotFoundException('User not found');
 
-    const category = await this.categoryRepository.findOneBy({ id: dto.categoryId });
+    let category: Category | null = null;
+    if (dto.categoryId) {
+      category = await this.categoryRepository.findOneBy({ id: dto.categoryId });
+      if (!category) throw new NotFoundException('Category not found');
+    }
 
     const expense = this.expenseRepository.create({
       ...dto,
       user,
-      category: category || null,
+      category,
     });
 
     return this.expenseRepository.save(expense);
   }
+
+
+
 
   findAll(): Promise<Expense[]> {
     return this.expenseRepository.find({ relations: ['user', 'category'] });
@@ -57,29 +64,40 @@ export class ExpenseService {
 
     if (!expense) throw new NotFoundException(`Expense ${id} not found`);
 
-    if (dto.userId) {
-      const user = await this.userRepository.findOneBy({ id: dto.userId });
-      if (!user) throw new NotFoundException('User not found');
-      expense.user = user;
+    if (dto.userId !== undefined) {
+      if (dto.userId === null) {
+        expense.user = null;
+      } else {
+        const user = await this.userRepository.findOneBy({ id: dto.userId });
+        if (!user) throw new NotFoundException('User not found');
+        expense.user = user;
+      }
     }
 
-    if (dto.categoryId) {
-      const category = await this.categoryRepository.findOneBy({ id: dto.categoryId });
-      expense.category = category || null;
+    if (dto.categoryId !== undefined) {
+      if (dto.categoryId === null) {
+        expense.category = null;
+      } else {
+        const category = await this.categoryRepository.findOneBy({ id: dto.categoryId });
+        if (!category) throw new NotFoundException('Category not found');
+        expense.category = category;
+      }
     }
 
-    return this.expenseRepository.save(expense);
+    await this.expenseRepository.save(expense);
+    return this.findOne(expense.id); // recharge avec relations
   }
+
   async findOneWithCategory(id: number): Promise<Expense> {
     return this.expenseRepository.findOne({
       where: { id },
-      relations: ['category'], // très important
+      relations: ['category'],
     });
   }
+
   async remove(id: number): Promise<void> {
     const expense = await this.expenseRepository.findOneBy({ id });
     if (!expense) throw new NotFoundException('Expense not found');
-
     await this.expenseRepository.remove(expense);
   }
 }

@@ -1,16 +1,16 @@
-import {Entity, PrimaryGeneratedColumn, Column, ManyToOne} from 'typeorm';
-import {User} from '../../user/entity/user.entity'
-import {Category} from '../../category/entity/category.entity'
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { User } from '../../user/entity/user.entity';
+import { Category } from '../../category/entity/category.entity';
 
-@Entity("expenses")
+@Entity('expense')
 export class Expense {
   @PrimaryGeneratedColumn()
-  id: number; 
+  id: number;
 
   @Column()
   label: string;
 
-  @Column('decimal', {precision: 10, scale: 2})
+  @Column('decimal', { precision: 10, scale: 2 })
   amount: number;
 
   @Column({ type: 'varchar', default: 'expense' })
@@ -19,9 +19,21 @@ export class Expense {
   @Column()
   date: Date;
 
-  @ManyToOne(() => User, (user) => user.expense, {onDelete: 'SET NULL'})
+  @Column({ nullable: true })
+  userId: number;
+
+  @JoinColumn({ name: 'userId' })
+  @ManyToOne(() => User, (user) => user.expenses, { onDelete: 'SET NULL' })
   user: User;
 
-  @ManyToOne(() => Category, (category) => category.expenses, {eager: true})
-  category: Category;
+  @Column({ nullable: true })
+  categoryId: number;
+
+  @JoinColumn({ name: 'categoryId' })
+  @ManyToOne(() => Category, (category) => category.expenses, {
+    eager: true,
+    onDelete: 'SET NULL',
+    nullable: true,
+  })
+  category: Category | null;
 }

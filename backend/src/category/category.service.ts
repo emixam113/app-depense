@@ -14,7 +14,10 @@ export class CategoryService {
 
   async create(dto: CreateCategoryDto): Promise<Category> {
     // On crée l'entité Category uniquement avec la propriété "name" du DTO
-    const category = this.categoryRepository.create({ name: dto.name });
+    const category = this.categoryRepository.create({
+      name: dto.name,
+      color: dto.color
+    });
     return this.categoryRepository.save(category);
   }
 

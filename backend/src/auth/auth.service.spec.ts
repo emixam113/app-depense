@@ -154,7 +154,7 @@ describe('AuthService', () => {
 
       expect(userRepository.findOne).toHaveBeenCalledWith({
         where: { email: loginDto.email },
-        select: ['id', 'email', 'password'],
+        select: ['id', 'email', 'password', 'firstName', 'lastName'],
       });
       expect(result).toHaveProperty('access_token', 'jwt-token');
     });
