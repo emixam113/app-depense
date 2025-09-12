@@ -71,7 +71,7 @@ function AddExpense({ onAdd, userId }: AddExpenseProps) {
       date: new Date().toISOString(),
       categoryId: parseInt(categoryId, 10),
       type: transactionType,
-      userId,  // ici on utilise la prop userId
+      userId: parseInt(userId, 10)  // ici on utilise la prop userId
     };
 
     const token = localStorage.getItem('token');

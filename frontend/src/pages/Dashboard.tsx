@@ -1,16 +1,16 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import Category from "../components/Category";
-import { Expense } from "../Types/types";
-import { Graph } from "../components/Graph";
 import AddExpense from "../components/AddExpense";
 import ExpenseList from "../components/ExpenseList";
-import CategoryList from "../components/CategoryList";
 import EditExpenseModal from "../components/EditExpenseModal";
+import CategoryList, { Category } from "../components/CategoryList";
+import Graph from "../components/Graph";
+import { Expense } from "../Types/types";
 
 const Dashboard = () => {
     const [expenses, setExpenses] = useState<Expense[]>([]);
-    const [user, setUser] = useState<{ firstname: string; lastname: string } | null>(null);
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [user, setUser] = useState<{ firstname: string; lastname: string; id?: number } | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
@@ -18,25 +18,34 @@ const Dashboard = () => {
     const navigate = useNavigate();
     const token = localStorage.getItem("token");
 
-    // Total des dépenses
+    // --- Calcul total ---
     const total = useMemo(
-        () => expenses.reduce((sum, expense) => sum + (Number(expense?.amount) || 0), 0),
+        () => expenses.reduce((sum, exp) => sum + Number(exp.amount || 0), 0),
         [expenses]
     );
 
-    // Données du graphique
+    // --- Préparer les données pour le graphique ---
     const categoryData = useMemo(() => {
-        return expenses.reduce((acc, item) => {
-            const cat =
-                typeof item.category === "string"
-                    ? item.category
-                    : item.category?.name || "Sans catégorie";
-            acc[cat] = (acc[cat] || 0) + (Number(item.amount) || 0);
-            return acc;
-        }, {} as Record<string, number>);
+        const data: Record<string, number> = {};
+        expenses.forEach((exp) => {
+            const catName = exp.category?.name || "Sans catégorie";
+            data[catName] = (data[catName] || 0) + Number(exp.amount || 0);
+        });
+        return data;
     }, [expenses]);
 
-    // Chargement initial : utilisateur + dépenses
+    const categoryColors = useMemo(() => {
+        const colors: Record<string, string> = {};
+        categories.forEach((cat) => {
+            colors[cat.name] = cat.color;
+        });
+        return colors;
+    }, [categories]);
+
+    const formatAmount = (amount: number) =>
+        new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(amount);
+
+    // --- Fetch données backend ---
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -46,33 +55,43 @@ const Dashboard = () => {
                     setUser({
                         firstname: parsed.firstname || "Utilisateur",
                         lastname: parsed.lastname || "",
+                        id: parsed.id,
                     });
                 }
 
                 if (!token) throw new Error("Non authentifié");
 
-                const res = await fetch("http://localhost:3000/expenses", {
+                // Dépenses
+                const resExpenses = await fetch("http://localhost:3000/expenses", {
                     headers: { Authorization: `Bearer ${token}` },
                 });
+                if (!resExpenses.ok) throw new Error("Erreur lors du chargement des dépenses");
+                const dataExpenses: Expense[] = await resExpenses.json();
+                setExpenses(dataExpenses);
 
-                if (!res.ok) throw new Error("Erreur lors du chargement des dépenses");
-
-                const data: Expense[] = await res.json();
-                setExpenses(data);
+                // Catégories
+                const resCategories = await fetch("http://localhost:3000/categories", {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                if (!resCategories.ok) throw new Error("Erreur lors du chargement des catégories");
+                const dataCategories: Category[] = await resCategories.json();
+                setCategories(dataCategories);
             } catch (err) {
                 setError(err instanceof Error ? err.message : "Une erreur est survenue");
             } finally {
                 setIsLoading(false);
             }
         };
-
         fetchData();
     }, [token]);
 
-    const formatAmount = (amount: number) =>
-        new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(amount);
-
-    // Gestion suppression dépense côté backend
+    // --- Gestion dépenses ---
+    const handleAddExpense = (expense: Expense) => setExpenses(prev => [...prev, expense]);
+    const handleEditExpense = (expense: Expense) => setEditingExpense(expense);
+    const handleSaveExpense = (updated: Expense) => {
+        setExpenses(prev => prev.map(e => (e.id === updated.id ? updated : e)));
+        setEditingExpense(null);
+    };
     const handleDeleteExpense = async (id: number) => {
         if (!token) return alert("Non authentifié");
         try {
@@ -80,72 +99,25 @@ const Dashboard = () => {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${token}` },
             });
-
             if (!res.ok) throw new Error("Erreur lors de la suppression");
-
-            setExpenses((prev) => prev.filter((expense) => expense.id !== id));
+            setExpenses(prev => prev.filter(e => e.id !== id));
         } catch (err) {
             alert(err instanceof Error ? err.message : "Une erreur est survenue");
         }
     };
 
-    // Ouverture modale édition
-    const handleEditExpense = (expense: Expense) => {
-        setEditingExpense(expense);
-    };
+    // --- Gestion catégories ---
+    const handleCategoryAdded = (newCategory: Category) => setCategories(prev => [...prev, newCategory]);
+    const handleDeleteCategory = (id: number) => setCategories(prev => prev.filter(c => c.id !== id));
 
-    // Sauvegarde après édition
-    const handleSaveExpense = (updated: Expense) => {
-        setExpenses((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
-        setEditingExpense(null);
-    };
-
-    // Gestion ajout dépense côté backend
-    const handleAddExpense = async (expenses: Expense) => {
-        if (!token) return alert("Non authentifié");
-        try {
-            // DTO attendu par le backend
-            const expenseDto = {
-                label: expenses.label,
-                amount: expenses.amount,
-                date: expenses.date,
-                type: expenses.type,
-                categoryId: expenses.category ? expenses.category.id : null,
-                userId: expenses.userId ?? undefined,
-            };
-
-            const res = await fetch("http://localhost:3000/expenses", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify(expenseDto),
-            });
-
-            if (!res.ok) throw new Error("Erreur lors de l'ajout de la dépense");
-
-            const newExpense: Expense = await res.json();
-            setExpenses((prev) => [...prev, newExpense]);
-        } catch (err) {
-            alert(err instanceof Error ? err.message : "Une erreur est survenue");
-        }
-    };
-
-    if (isLoading)
-        return <div className="min-h-screen flex items-center justify-center">Chargement...</div>;
-
-    if (error)
-        return (
-            <div className="min-h-screen flex items-center justify-center text-red-500">
-                {error}
-            </div>
-        );
+    // --- Affichage ---
+    if (isLoading) return <div className="min-h-screen flex items-center justify-center">Chargement...</div>;
+    if (error) return <div className="min-h-screen flex items-center justify-center text-red-500">{error}</div>;
 
     return (
         <div className="min-h-screen bg-emerald-400 p-6">
             <div className="max-w-5xl mx-auto space-y-6">
-                {/* Header utilisateur + bouton déconnexion */}
+                {/* Header */}
                 <div className="flex justify-between items-center">
                     <h1 className="text-2xl font-bold text-white">
                         Bonjour, {user?.firstname} {user?.lastname}
@@ -161,18 +133,15 @@ const Dashboard = () => {
                     </button>
                 </div>
 
-                {/* Solde actuel */}
+                {/* Solde total */}
                 <div className="bg-white p-4 rounded-lg shadow text-center">
                     <h2 className="text-xl font-semibold">Solde actuel</h2>
                     <p className="text-3xl font-bold text-green-600">{formatAmount(total)}</p>
                 </div>
 
-                {/* Graphique + Liste des dépenses */}
+                {/* Graphiques et dépenses */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-white p-4 rounded-lg shadow">
-                        <h3 className="text-lg font-semibold mb-2">Dépenses par catégorie</h3>
-                        <Graph data={categoryData} />
-                    </div>
+                    <Graph data={categoryData} color={categoryColors} />
 
                     <div className="bg-white p-4 rounded-lg shadow">
                         <h3 className="text-lg font-semibold mb-2">Liste des dépenses</h3>
@@ -187,24 +156,39 @@ const Dashboard = () => {
                 {/* Ajouter une dépense */}
                 <div className="bg-white p-4 rounded-lg shadow">
                     <h3 className="text-lg font-semibold mb-3">Ajouter une dépense</h3>
-                    <AddExpense onAdd={handleAddExpense} />
+                    <AddExpense
+                        onAdd={handleAddExpense}
+                        userId={user?.id ? String(user.id) : ""}
+                        onUpdate={() => {}}
+                    />
                 </div>
 
-                {/* Gérer les catégories */}
+                {/* Catégories */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="bg-white p-4 rounded-lg shadow">
                         <h3 className="text-lg font-semibold mb-3">Gérer les catégories</h3>
-                        <Category />
+                        <CategoryList
+                            token={token}
+                            onCategoryAdded={handleCategoryAdded}
+                            onDeleteCategory={handleDeleteCategory}
+                        />
                     </div>
 
                     <div className="bg-white p-4 rounded-lg shadow">
-                        <h3 className="text-lg font-semibold mb-3">Liste des Catégories</h3>
-                        <CategoryList token={token} />
+                        <h3 className="text-lg font-semibold mb-3">Liste des catégories</h3>
+                        <ul>
+                            {categories.map(c => (
+                                <li key={c.id} className="flex items-center gap-2 mb-1">
+                                    <span className="w-4 h-4 rounded-full" style={{ backgroundColor: c.color }}></span>
+                                    {c.name}
+                                </li>
+                            ))}
+                        </ul>
                     </div>
                 </div>
             </div>
 
-            {/* Modale d’édition */}
+            {/* Modal édition dépense */}
             {editingExpense && (
                 <EditExpenseModal
                     expense={editingExpense}

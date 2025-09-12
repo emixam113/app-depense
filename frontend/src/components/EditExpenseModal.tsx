@@ -50,19 +50,28 @@ const EditExpenseModal = ({ expense, onClose, onSave, token }: Props) => {
     const handleSubmit = async () => {
         if (!token) return alert("Non authentifié");
 
+        const payload = {
+            label: form.label,
+            amount: Number(form.amount),
+            date: new Date(form.date).toISOString(), //conversion ISO pour la date;
+            type: form.type,
+            categoryId: form.categoryId ? Number(form.categoryId) : null,
+        }
+
         const res = await fetch(`http://localhost:3000/expenses/${expense.id}`, {
-            method: "PUT",
+            method: "PATCH",
             headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify(form),
+            body: JSON.stringify(payload),
         });
 
         if (!res.ok) return alert("Erreur lors de la modification");
 
         const updated: Expense = await res.json();
         onSave(updated);
+        onClose();
     };
 
     return (
