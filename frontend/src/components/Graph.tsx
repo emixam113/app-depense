@@ -1,103 +1,68 @@
-import { useMemo } from "react";
-import { Pie } from "react-chartjs-2";
-import {
-    Chart as ChartJS,
-    ArcElement,
-    Tooltip,
-    Legend,
-    ChartOptions,
-} from "chart.js";
+import { PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
 
-ChartJS.register(ArcElement, Tooltip, Legend);
-
-interface CategoryData {
-    name: string;
-    amount: number;
-    color: string;
-}
-
-interface GraphProps {
-    data: Record<string, number>; // ex: { "Alimentation": 120, "Transport": 50 }
-    color: Record<string, string>; // ex: { "Alimentation": "#FF0000", "Transport": "#00FF00" }
-}
-
-const Graph = ({ data, color }: GraphProps) => {
-    // Transforme les données en tableau utilisable par Chart.js
-    const graphData: CategoryData[] = useMemo(() => {
-        return Object.entries(data || {}).map(([name, amount]) => ({
-            name,
-            amount: Number(amount) || 0,
-            color: color[name] || "#888888",
-        }));
-    }, [data, color]);
-
-    const labels = useMemo(() => graphData.map(c => c.name), [graphData]);
-    const values = useMemo(() => graphData.map(c => c.amount), [graphData]);
-    const colors = useMemo(() => graphData.map(c => c.color), [graphData]);
-
-    // Si aucune donnée
-    if (labels.length === 0 || values.every(v => v === 0)) {
-        return (
-            <div className="bg-white shadow rounded-2xl p-6 w-full">
-                <h2 className="text-lg font-semibold mb-4">Répartition budgétaire</h2>
-                <p className="text-gray-500">Aucune donnée disponible pour l'instant.</p>
-            </div>
-        );
-    }
-
-    const chartData = useMemo(
-        () => ({
-            labels,
-            datasets: [
-                {
-                    data: values,
-                    backgroundColor: colors,
-                    borderWidth: 1,
-                    borderColor: "#fff",
-                    hoverOffset: 10,
-                },
-            ],
-        }),
-        [labels, values, colors]
-    );
-
-    const options: ChartOptions<"pie"> = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                position: "bottom",
-                labels: {
-                    padding: 20,
-                    usePointStyle: true,
-                    pointStyle: "circle",
-                },
-            },
-            tooltip: {
-                callbacks: {
-                    label: function (context) {
-                        const label = context.label || "";
-                        const value = Number(context.raw) || 0;
-                        const dataset = context.dataset.data as number[];
-                        const total = dataset.reduce((acc, curr) => acc + (Number(curr) || 0), 0);
-                        const percentage = total > 0 ? ((value / total) * 100).toFixed(2) : "0.00";
-                        return `${label}: ${value.toFixed(2)} € (${percentage}%)`;
-                    },
-                },
-            },
-        },
-    };
-
-    return (
-        <div className="bg-white shadow rounded-2xl p-6 w-full">
-            <h2 className="text-lg font-semibold mb-4 font-sans">
-                Répartition budgétaire
-            </h2>
-            <div className="w-full aspect-square">
-                <Pie data={chartData} options={options} />
-            </div>
-        </div>
-    );
+type GraphProps = {
+    revenus?: Record<string, number>;
+    depenses?: Record<string, number>;
+    categoryColors: Record<string, string>;
 };
 
-export default Graph;
+export default function Graph({ revenus = {}, depenses = {}, categoryColors }: GraphProps) {
+    const revenusArray = Object.entries(revenus).map(([name, value]) => ({ name, value }));
+    const depensesArray = Object.entries(depenses).map(([name, value]) => ({ name, value }));
+
+    return (
+        <>
+            {/* Donut Revenus */}
+            <div className="flex flex-col items-center">
+                <h4 className="text-lg font-medium mb-2">💰 Revenus par source</h4>
+                {revenusArray.length > 0 ? (
+                    <PieChart width={300} height={300}>
+                        <Pie
+                            data={revenusArray}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={70}
+                            outerRadius={110}
+                            dataKey="value"
+                            label
+                        >
+                            {revenusArray.map((entry, index) => (
+                                <Cell key={`revenu-${index}`} fill={categoryColors[entry.name]} />
+                            ))}
+                        </Pie>
+                        <Tooltip />
+                        <Legend />
+                    </PieChart>
+                ) : (
+                    <p className="text-gray-500 italic">Aucun revenu à afficher</p>
+                )}
+            </div>
+
+            {/* Donut Dépenses */}
+            <div className="flex flex-col items-center">
+                <h4 className="text-lg font-medium mb-2">💸 Dépenses par catégorie</h4>
+                {depensesArray.length > 0 ? (
+                    <PieChart width={300} height={300}>
+                        <Pie
+                            data={depensesArray}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={70}
+                            outerRadius={110}
+                            dataKey="value"
+                            label
+                        >
+                            {depensesArray.map((entry, index) => (
+                                <Cell key={`depense-${index}`} fill={categoryColors[entry.name]} />
+                            ))}
+                        </Pie>
+                        <Tooltip />
+                        <Legend />
+                    </PieChart>
+                ) : (
+                    <p className="text-gray-500 italic">Aucune dépense à afficher</p>
+                )}
+            </div>
+        </>
+    );
+}
