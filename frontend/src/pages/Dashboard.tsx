@@ -5,7 +5,7 @@ import EditExpenseModal from "../components/EditExpenseModal";
 import CategoryList, { Category } from "../components/CategoryList";
 import Graph from "../components/Graph";
 import { Expense } from "../Types/types";
-import { useAccessibility } from "../Context/AccessibilityContext.tsx"// ✅ import toggle
+import { useAccessibility } from "../Context/AccessibilityContext.tsx";
 
 export default function Dashboard() {
     const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -104,12 +104,21 @@ export default function Dashboard() {
     }, [token]);
 
     // --- Gestion dépenses ---
-    const handleAddExpense = (expense: Expense) => setExpenses((prev) => [...prev, expense]);
+    const handleAddExpense = (expense: Expense) => {
+        // ✅ force le signe en fonction du type
+       const finalExpense = {
+           ...expense,
+           amount: expense.type === "expense" ? -Math.abs(Number(expense.amount)) : Math.abs(Number(expense.amount))
+       }
+        setExpenses((prev) => [...prev, finalExpense]);
+    };
+
     const handleSaveExpense = (updated: Expense) => {
         setExpenses((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
         setEditingExpense(null);
     };
-// --- Gestion catégories ---
+
+    // --- Gestion catégories ---
     const handleCategoryAdded = (newCategory: Category) =>
         setCategories((prev) => [...prev, newCategory]);
 
@@ -154,9 +163,7 @@ export default function Dashboard() {
                 <div className="bg-white p-4 rounded-lg shadow text-center">
                     <h2 className="text-xl font-semibold">Solde actuel</h2>
                     <p
-                        className={`text-3xl font-bold ${
-                            total >= 0 ? "text-green-600" : "text-red-600"
-                        }`}
+                        className={`text-3xl font-bold ${total >= 0 ? "text-green-600" : "text-red-600"}`}
                     >
                         {formatAmount(total)}
                     </p>
@@ -172,7 +179,7 @@ export default function Dashboard() {
 
                 {/* Ajouter une dépense */}
                 <div className="bg-white p-4 rounded-lg shadow">
-                    <h3 className="text-lg font-semibold mb-3">Ajouter une dépense</h3>
+                    <h3 className="text-lg font-semibold mb-3">Ajouter une dépense / revenu</h3>
                     <AddExpense
                         onAdd={handleAddExpense}
                         userId={user?.id ? String(user.id) : ""}
@@ -181,8 +188,9 @@ export default function Dashboard() {
                     />
                 </div>
 
-                {/* Catégories */}
+                {/* Catégories & Dépenses */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Gestion des catégories */}
                     <div className="bg-white p-4 rounded-lg shadow">
                         <h3 className="text-lg font-semibold mb-3">Gérer les catégories</h3>
                         <CategoryList
@@ -192,18 +200,18 @@ export default function Dashboard() {
                         />
                     </div>
 
+                    {/* Liste des dépenses */}
                     <div className="bg-white p-4 rounded-lg shadow">
-                        <h3 className="text-lg font-semibold mb-3">Liste des catégories</h3>
+                        <h3 className="text-lg font-semibold mb-3">Liste des dépenses</h3>
                         <ul>
-                            {categories.map((c) => (
-                                <li key={c.id} className="flex items-center gap-2 mb-1">
-                  <span
-                      className="w-4 h-4 rounded-full"
-                      style={{ backgroundColor: c.color }}
-                  ></span>
-                                    {c.name}
-                                </li>
-                            ))}
+                            {expenses
+                                .filter((e) => e.amount < 0)
+                                .map((e) => (
+                                    <li key={e.id} className="flex justify-between items-center mb-1">
+                                        <span>{e.category?.name || "Sans catégorie"}</span>
+                                        <span className="text-red-500">{formatAmount(e.amount)}</span>
+                                    </li>
+                                ))}
                         </ul>
                     </div>
                 </div>
