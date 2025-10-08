@@ -19,7 +19,7 @@ import { UserModule } from '../user/user.module';
           port: config.get<number>('MAIL_PORT'),
           auth: {
             user: config.get('MAIL_USER'),
-            pass: config.get('MAIL_PASS'),
+            pass: config.get('MAIL_PASSWORD'),
           },
         },
         defaults: {
