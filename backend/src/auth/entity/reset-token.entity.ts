@@ -7,7 +7,7 @@ export class ResetToken{
     id: number;
 
     @Column()
-    token: string;
+    code: string;
 
     @ManyToOne(() => User, (user) => user.resetTokens, { onDelete: 'CASCADE' })
     user: User;

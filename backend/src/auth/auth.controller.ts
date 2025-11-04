@@ -1,67 +1,77 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, BadRequestException, Res, NotFoundException } from '@nestjs/common';
-import { Response } from 'express';
+import {
+  Controller,
+  Post,
+  Body,
+  BadRequestException,
+  UseGuards,
+  Get,
+  Req,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { SignupDTO } from './DTO/Signup.dto';
-import { LoginDto } from './DTO/login.dto';
-import {ResetPasswordDto} from './DTO/reset-password.dto'
-import { UserService } from '../user/user.service';
+import { JwtAuthGuard } from './JWT/jwt-auth.guard';
+import { Request } from 'express';
 
 @Controller('auth')
 export class AuthController {
-  constructor(
-    private readonly authService: AuthService,
-    private readonly userService: UserService
-  ) { }
+  constructor(private readonly authService: AuthService) {}
 
-  @Post('signup')
-  async signup(@Body() signupDTO: SignupDTO) {
-    console.log('Formulaire d\'inscription reçu :');
-    console.log('Email:', signupDTO.email);
-    console.log('Password:', signupDTO.password);
-    console.log('Prénom:', signupDTO.firstName);
-    console.log('Nom:', signupDTO.lastName);
-    console.log('Date de naissance:', signupDTO.birthDate);
-    return this.authService.signup(signupDTO);
-  }
-
+  // 🔐 Connexion
   @Post('login')
-  async login(@Body() loginDto: LoginDto) {
-    console.log('Formulaire de connexion reçu :');
-    console.log('Email:', loginDto.email);
-    console.log('Password:', loginDto.password);
-    return this.authService.login(loginDto);
+  async login(
+    @Body() body: { email: string; password: string },
+  ): Promise<any> {
+    const { email, password } = body;
+    if (!email || !password) {
+      throw new BadRequestException('Email et mot de passe requis.');
+    }
+    return this.authService.login(email, password);
   }
 
+  // 🆕 Inscription
+  @Post('signup')
+  async signup(
+    @Body()
+    body: {
+      email: string;
+      password: string;
+      confirmPassword: string;
+      firstName: string;
+      lastName: string;
+      birthDate: string;
+    },
+  ) {
+    return this.authService.signup(body);
+  }
+
+  // 📧 Demande de réinitialisation du mot de passe
   @Post('forgot-password')
-  @HttpCode(HttpStatus.OK)
-  async forgotPassword(@Body() body: { email?: string, birthdate?: string }) {
-    try {
-      if (!body.email || !body.birthdate) {
-        throw new BadRequestException('Email et date de naissance sont requis');
-      }
-      
-      // Nettoyer les entrées
-      const email = body.email.trim().toLowerCase();
-      const birthdate = body.birthdate.trim();
-      
-      const result = await this.authService.requestPasswordReset(email, birthdate);
-      return result;
-      
-    } catch (error) {
-      // Les erreurs spécifiques sont déjà gérées par le service
-      // On laisse passer les erreurs pour qu'elles soient traitées par le filtre d'exceptions global
-      throw error;
+  async forgotPassword(@Body() body: { email: string }) {
+    const { email } = body;
+    if (!email) {
+      throw new BadRequestException('Email requis.');
     }
+    return this.authService.forgotPassword(email);
   }
 
+  // 🔑 Réinitialisation du mot de passe avec le code reçu
   @Post('reset-password')
-  @HttpCode(HttpStatus.OK)
-  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
-    try {
-      const result = await this.authService.resetPassword(resetPasswordDto);
-      return { success: true, message: result.message };
-    } catch (error) {
-      throw new BadRequestException(error.message || 'Erreur lors de la réinitialisation du mot de passe');
+  async resetPassword(
+    @Body()
+    body: { email: string; code: string; newPassword: string },
+  ) {
+    const { email, code, newPassword } = body;
+    if (!email || !code || !newPassword) {
+      throw new BadRequestException(
+        'Email, code et nouveau mot de passe requis.',
+      );
     }
+    return this.authService.resetPassword(email, code, newPassword);
+  }
+
+  // 👤 Récupération du profil utilisateur (protégée par JWT)
+  @UseGuards(JwtAuthGuard)
+  @Get('profile')
+  getProfile(@Req() req: Request) {
+    return req.user; // ✅ Le payload JWT contient { sub, email }
   }
 }

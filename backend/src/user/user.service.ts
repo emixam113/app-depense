@@ -1,10 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import * as argon2 from 'argon2'; // ✅ Import nécessaire pour le hachage
 import { User } from './entity/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import * as argon2 from 'argon2';
 
 @Injectable()
 export class UserService {
@@ -13,60 +13,86 @@ export class UserService {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  // Trouver un utilisateur par email
-  async findByEmail(email: string): Promise<User | null> {
-    return this.userRepository.findOne({ where: { email } });
-  }
-
-  // Créer un utilisateur
+  // 🔹 Créer un nouvel utilisateur
   async create(createUserDto: CreateUserDto): Promise<User> {
-    const user = this.userRepository.create(createUserDto);
-    return this.userRepository.save(user);
+    const { email, password, confirmPassword, birthDate, ...rest } = createUserDto;
+
+    // Vérifie si l'email existe déjà
+    const existingUser = await this.userRepository.findOne({ where: { email } });
+    if (existingUser) {
+      throw new BadRequestException('Un utilisateur avec cet email existe déjà.');
+    }
+
+    // Vérifie les mots de passe
+    if (password !== confirmPassword) {
+      throw new BadRequestException('Les mots de passe ne correspondent pas.');
+    }
+
+    // Hash du mot de passe
+    const hashedPassword = await argon2.hash(password);
+
+    // Création de l'utilisateur
+    const newUser = this.userRepository.create({
+      ...rest,
+      email,
+      password: hashedPassword,
+      birthDate: new Date(birthDate),
+    });
+
+    return this.userRepository.save(newUser);
   }
 
-  // Récupérer tous les utilisateurs
+  // 🔹 Récupérer tous les utilisateurs
   async findAll(): Promise<User[]> {
     return this.userRepository.find();
   }
 
-  // Récupérer un utilisateur par ID
+  // 🔹 Récupérer un utilisateur par ID
   async findOne(id: number): Promise<User> {
     const user = await this.userRepository.findOne({ where: { id } });
     if (!user) {
-      throw new NotFoundException(`User with id ${id} not found`);
+      throw new NotFoundException(`Utilisateur avec l'ID ${id} non trouvé`);
     }
     return user;
   }
 
-  // Mettre à jour un utilisateur
+  // 🔹 Récupérer un utilisateur par email
+  async findByEmail(email: string): Promise<User | null> {
+    return this.userRepository
+      .createQueryBuilder('user')
+      .addSelect('user.password') // 🔥 récupère aussi le mot de passe
+      .where('user.email = :email', { email })
+      .getOne();
+  }
+  // 🔹 Mettre à jour un utilisateur
   async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
     const user = await this.findOne(id);
-    const updated = Object.assign(user, updateUserDto);
-    return this.userRepository.save(updated);
-  }
 
-  // Supprimer un utilisateur
-  async remove(id: number): Promise<void> {
-    const result = await this.userRepository.delete(id);
-    if (result.affected === 0) {
-      throw new NotFoundException(`User with id ${id} not found`);
-    }
-  }
-
-  // ✅ Mettre à jour le mot de passe (avec hash Argon2)
-  async updatePassword(email: string, newPassword: string): Promise<void> {
-    const user = await this.userRepository.findOne({ where: { email } });
-
-    if (!user) {
-      throw new NotFoundException(`Utilisateur avec l'email ${email} non trouvé`);
+    // Si on modifie le mot de passe → on le rehash
+    if (updateUserDto.password) {
+      updateUserDto.password = await argon2.hash(updateUserDto.password);
     }
 
-    // 🔒 Hachage sécurisé du nouveau mot de passe
-    const hashedPassword = await argon2.hash(newPassword);
+    // Met à jour les champs
+    Object.assign(user, updateUserDto);
+
+    return this.userRepository.save(user);
+  }
+
+  // 🔹 Mettre à jour uniquement le mot de passe (utilisé par AuthService)
+  async updatePassword(userId: string, hashedPassword: string): Promise<void> {
+    const user = await this.userRepository.findOne({ where: { id: parseInt(userId) } });
+    if (!user) throw new NotFoundException('Utilisateur non trouvé');
 
     user.password = hashedPassword;
     await this.userRepository.save(user);
+  }
 
-    console.log(`Mot de passe mis à jour pour ${email}`);
+  // 🔹 Supprimer un utilisateur
+  async remove(id: number): Promise<void> {
+    const result = await this.userRepository.delete(id);
+    if (result.affected === 0) {
+      throw new NotFoundException(`Utilisateur avec l'ID ${id} non trouvé`);
+    }
   }
 }

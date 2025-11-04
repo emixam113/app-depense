@@ -1,15 +1,16 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 import { join } from 'path';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MailService } from './mail.service';
-import { MailController } from './mail.controller'; 
-import { UserModule } from '../user/user.module'; 
+import { MailController } from './mail.controller';
+import { UserModule } from '../user/user.module';
+import { AuthModule } from '../auth/auth.module'; // ✅
 
 @Module({
   imports: [
-    ConfigModule, // important pour injection ConfigService
+    ConfigModule,
     MailerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -28,13 +29,12 @@ import { UserModule } from '../user/user.module';
         template: {
           dir: join(__dirname, 'templates'),
           adapter: new HandlebarsAdapter(),
-          options: {
-            strict: true,
-          },
+          options: { strict: true },
         },
       }),
     }),
-    UserModule, 
+    UserModule,
+    forwardRef(() => AuthModule), // ✅ UTILISE forwardRef ici
   ],
   controllers: [MailController],
   providers: [MailService],

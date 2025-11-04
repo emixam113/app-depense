@@ -1,78 +1,146 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { UserService } from '../user/user.service';
+import { BadRequestException } from '@nestjs/common';
 
-describe('AuthController', () => {
-  let authController: AuthController;
-  let authService: AuthService;
-  let userService: UserService;
+describe('AuthController (Unit)', () => {
+  let controller: AuthController;
+  let authService: jest.Mocked<AuthService>;
 
   beforeEach(async () => {
-    const moduleRef: TestingModule = await Test.createTestingModule({
+    const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
       providers: [
         {
           provide: AuthService,
           useValue: {
-            signup: jest.fn().mockResolvedValue({ success: true }),
-            login: jest.fn().mockResolvedValue({ accessToken: 'fake-token' }),
-            resetPassword: jest.fn().mockResolvedValue({ success: true, message: 'Mot de passe mis à jour avec succès.' }),
-          },
-        },
-        {
-          provide: UserService,
-          useValue: {
-            updatePassword: jest.fn().mockResolvedValue({ id: 1, email: 'test@example.com', password: 'hashed' }),
+            login: jest.fn(),
+            signup: jest.fn(),
+            forgotPassword: jest.fn(),
+            resetPassword: jest.fn(),
           },
         },
       ],
     }).compile();
 
-    authController = moduleRef.get<AuthController>(AuthController);
-    authService = moduleRef.get<AuthService>(AuthService);
-    userService = moduleRef.get<UserService>(UserService);
+    controller = module.get<AuthController>(AuthController);
+    authService = module.get(AuthService);
   });
 
-  it('should be defined', () => {
-    expect(authController).toBeDefined();
+  afterEach(() => jest.clearAllMocks());
+
+  // 🔐 LOGIN
+  describe('login', () => {
+    it('devrait appeler AuthService.login et renvoyer le résultat', async () => {
+      const dto = { email: 'test@test.com', password: '1234' };
+      const expected = { message: 'Connexion réussie', token: 'jwt-token' };
+
+      authService.login.mockResolvedValue(expected as any);
+
+      const result = await controller.login(dto);
+
+      expect(authService.login).toHaveBeenCalledWith(dto.email, dto.password);
+      expect(result).toEqual(expected);
+    });
+
+    it('devrait lever BadRequestException si email manquant', async () => {
+      const dto = { email: '', password: '1234' };
+      await expect(controller.login(dto as any)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('devrait lever BadRequestException si mot de passe manquant', async () => {
+      const dto = { email: 'test@test.com', password: '' };
+      await expect(controller.login(dto as any)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
   });
 
-  it('should call signup with correct data', async () => {
-    const dto = {
-      email: 'test@example.com',
-      password: 'password',
-      firstName: 'Max',
-      lastName: 'Royan',
-      birthDate: '1999-01-01',
-      confirmPassword: 'password'
-    };
+  // 🆕 SIGNUP
+  describe('signup', () => {
+    it('devrait appeler AuthService.signup avec le bon body', async () => {
+      const dto = {
+        email: 'user@test.com',
+        password: 'password123',
+        confirmPassword: 'password123',
+        firstName: 'John',
+        lastName: 'Doe',
+        birthDate: '2000-01-01',
+      };
+      const expected = { message: 'Utilisateur créé' };
 
-    const result = await authController.signup(dto);
-    expect(authService.signup).toHaveBeenCalledWith(dto);
-    expect(result).toEqual({ success: true });
+      authService.signup.mockResolvedValue(expected as any);
+
+      const result = await controller.signup(dto);
+
+      expect(authService.signup).toHaveBeenCalledWith(dto);
+      expect(result).toEqual(expected);
+    });
   });
 
-  it('should call login with correct credentials', async () => {
-    const loginDto = { email: 'test@example.com', password: 'password' };
+  // ✉️ FORGOT PASSWORD
+  describe('forgotPassword', () => {
+    it('✅ devrait appeler AuthService.forgotPassword avec l’email', async () => {
+      const dto = { email: 'test@test.com' };
+      const expected = { message: 'Email envoyé' };
 
-    const result = await authController.login(loginDto);
-    expect(authService.login).toHaveBeenCalledWith(loginDto);
-    expect(result).toEqual({ accessToken: 'fake-token' });
+      authService.forgotPassword.mockResolvedValue(expected as any);
+
+      const result = await controller.forgotPassword(dto);
+
+      expect(authService.forgotPassword).toHaveBeenCalledWith(dto.email);
+      expect(result).toEqual(expected);
+    });
+
+    it(' devrait lever BadRequestException si email manquant', async () => {
+      const dto = { email: '' };
+      await expect(controller.forgotPassword(dto as any)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
   });
 
-  it('should update password and return success message', async () => {
-    const resetPasswordDto = {
-      token: 'test-token',
-      newPassword: 'newpass',
-      email: 'test@example.com'
-    };
+  // 🔑 RESET PASSWORD
+  describe('resetPassword', () => {
+    it(' devrait appeler AuthService.resetPassword avec les bons paramètres', async () => {
+      const dto = {
+        email: 'test@test.com',
+        code: '123456',
+        newPassword: 'newPass',
+      };
+      const expected = { message: 'Mot de passe réinitialisé' };
 
-    const result = await authController.resetPassword(resetPasswordDto);
-    
-    // Verify authService.resetPassword was called with the correct DTO
-    expect(authService.resetPassword).toHaveBeenCalledWith(resetPasswordDto);
-    // Verify the response matches what we expect
-    expect(result).toEqual({ success: true, message: 'Mot de passe mis à jour avec succès.' });
+      authService.resetPassword.mockResolvedValue(expected as any);
+
+      const result = await controller.resetPassword(dto);
+
+      expect(authService.resetPassword).toHaveBeenCalledWith(
+        dto.email,
+        dto.code,
+        dto.newPassword,
+      );
+      expect(result).toEqual(expected);
+    });
+
+    it(' devrait lever BadRequestException si un champ est manquant', async () => {
+      const dto = { email: 'test@test.com', code: '', newPassword: '' };
+
+      await expect(controller.resetPassword(dto as any)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  });
+
+  // 👤 GET PROFILE
+  describe('getProfile', () => {
+    it(' devrait renvoyer req.user', () => {
+      const req = { user: { id: 1, email: 'test@test.com' } } as any;
+
+      const result = controller.getProfile(req);
+
+      expect(result).toEqual(req.user);
+    });
   });
 });

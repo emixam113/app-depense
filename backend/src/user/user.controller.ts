@@ -1,45 +1,62 @@
-import {Controller, Get, Post, Body, Param, Delete, ParseIntPipe, Patch} from '@nestjs/common';
-import {UserService} from './user.service';
-import {User} from './entity/user.entity';
-import {CreateUserDto} from '../user/dto/create-user.dto';
-import {UpdateUserDto} from '../user/dto/update-user.dto';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Delete,
+  ParseIntPipe,
+  Patch,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
+import { UserService } from './user.service';
+import { User } from './entity/user.entity';
+import { CreateUserDto } from '../user/dto/create-user.dto';
+import { UpdateUserDto } from '../user/dto/update-user.dto';
+import { JwtAuthGuard } from '../auth/JWT/jwt-auth.guard';
 
-@Controller('user')
+@Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  //create new user
+  // 🔹 Récupère le profil de l'utilisateur connecté via JWT
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  getProfile(@Req() req) {
+    return req.user;
+  }
 
+  // 🔹 Crée un nouvel utilisateur (inscription)
   @Post()
-  async create(@Body() createUserDto: CreateUserDto): Promise<User>{
+  async create(@Body() createUserDto: CreateUserDto): Promise<User> {
     return this.userService.create(createUserDto);
   }
 
-  //get all users
+  // 🔹 Récupère tous les utilisateurs
   @Get()
-  async findAll(): Promise<User[]>{
-    return this.userService.findAll()
+  async findAll(): Promise<User[]> {
+    return this.userService.findAll();
   }
 
-  //get user by id 
+  // 🔹 Récupère un utilisateur par ID
   @Get(':id')
-  async findOne(@Param('id', ParseIntPipe) id: number): Promise<User>{
-    return this.userService.findOne(id);
+  async findOne(@Param('id', ParseIntPipe) id: number): Promise<User> {
+    return this.userService.findOne(id); // ✅ corrigé
   }
 
-  //update user by id
+  // 🔹 Met à jour un utilisateur par ID
   @Patch(':id')
   async update(
-    @Param('id', ParseIntPipe) id: number, 
-    @Body() UpdateUserDto: UpdateUserDto
-  ): Promise<User>{
-    return this.userService.update(id, UpdateUserDto);
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateUserDto: UpdateUserDto,
+  ): Promise<User> {
+    return this.userService.update(id, updateUserDto); // ✅ corrigé
   }
 
-  //delete user by id
+  // 🔹 Supprime un utilisateur par ID
   @Delete(':id')
-  async remove(@Param('id', ParseIntPipe) id: number): Promise<void>{
-    return this.userService.remove(id)
+  async remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
+    return this.userService.remove(id); // ✅ corrigé
   }
-
 }

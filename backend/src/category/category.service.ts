@@ -4,26 +4,43 @@ import { Repository } from 'typeorm';
 import { Category } from '../category/entity/category.entity';
 import { CreateCategoryDto } from './DTO/create-category.dto';
 import { UpdateCategoryDto } from './DTO/update-category.dto';
+import { User } from '../user/entity/user.entity';
 
 @Injectable()
 export class CategoryService {
   constructor(
     @InjectRepository(Category)
-    private categoryRepository: Repository<Category>,
+    private readonly categoryRepository: Repository<Category>,
   ) {}
 
-  async create(dto: CreateCategoryDto): Promise<Category> {
-    // On crée l'entité Category uniquement avec la propriété "name" du DTO
+
+  async create(dto: CreateCategoryDto, user?: User): Promise<Category> {
     const category = this.categoryRepository.create({
       name: dto.name,
-      color: dto.color
+      color: dto.color,
+      isDefault: !user, // si pas d'utilisateur -> catégorie globale
+      user: user ?? null,
     });
     return this.categoryRepository.save(category);
   }
 
-  async findAll(): Promise<Category[]> {
-    return this.categoryRepository.find();
+
+  async findAllForUser(user: User): Promise<Category[]> {
+    return this.categoryRepository.find({
+      where: [
+        { isDefault: true },
+        { user: { id: user.id } },
+      ],
+      order: { name: 'ASC' },
+    });
   }
+
+  async findAll(): Promise<Category[]> {
+    return this.categoryRepository.find({
+      order: { name: 'ASC' },
+    });
+  }
+
 
   async findOne(id: number): Promise<Category> {
     const category = await this.categoryRepository.findOne({ where: { id } });
@@ -43,6 +60,7 @@ export class CategoryService {
     }
     return this.categoryRepository.save(category);
   }
+
 
   async remove(id: number): Promise<void> {
     const category = await this.categoryRepository.findOneBy({ id });

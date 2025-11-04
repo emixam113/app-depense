@@ -1,56 +1,62 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, LessThan, MoreThan } from 'typeorm'; // ✅ ajout de MoreThan
 import { ResetToken } from './entity/reset-token.entity';
 import { User } from '../user/entity/user.entity';
-import * as crypto from 'crypto';
 
 @Injectable()
 export class ResetTokenService {
   constructor(
     @InjectRepository(ResetToken)
-    private readonly resetTokenRepo: Repository<ResetToken>,
+    private readonly resetTokenRepository: Repository<ResetToken>,
   ) {}
 
-  async generateToken(user: User): Promise<ResetToken> {
-    // Supprimer les anciens jetons
-    await this.resetTokenRepo.delete({ user: { id: user.id } });
+  // 🔹 Crée un nouveau token de réinitialisation
+  async createToken(user: User): Promise<ResetToken> {
+    const code = Math.floor(100 + Math.random() * 900).toString(); // ex: 403
 
-    // Créer un code à 3 chiffres
-    const token = Math.floor(100 + Math.random() * 900).toString(); // Génère un nombre entre 100 et 999
+    // Supprimer les anciens tokens non utilisés pour cet utilisateur
+    await this.resetTokenRepository.delete({ user: { id: user.id }, used: false });
+
     const expiresAt = new Date();
-    expiresAt.setMinutes(expiresAt.getMinutes() + 15); // Expire dans 15 minutes
+    expiresAt.setMinutes(expiresAt.getMinutes() + 15); // expire dans 15 minutes
 
-    const resetToken = this.resetTokenRepo.create({
-      token,
+    const resetToken = this.resetTokenRepository.create({
       user,
-      expiresAt,
+      code,
       used: false,
+      expiresAt,
     });
 
-    return this.resetTokenRepo.save(resetToken);
+    return this.resetTokenRepository.save(resetToken);
   }
 
-  async validateToken(token: string, email?: string): Promise<ResetToken | null> {
-    const where: any = { token };
-    if (email) {
-      where.user = { email };
-    }
-    
-    const resetToken = await this.resetTokenRepo.findOne({
-      where,
+  // 🔹 Trouve un token valide
+  async findValidToken(user: User, code: string): Promise<ResetToken | null> {
+    const now = new Date();
+
+    const token = await this.resetTokenRepository.findOne({
+      where: {
+        user: { id: user.id },
+        code,
+        used: false,
+        expiresAt: MoreThan(now), // ✅ fonctionne avec l'import
+      },
       relations: ['user'],
     });
 
-    if (!resetToken || resetToken.used || resetToken.expiresAt < new Date()) {
-      return null;
-    }
-
-    return resetToken;
+    return token || null;
   }
 
+  // 🔹 Marque un token comme utilisé
   async markAsUsed(token: ResetToken): Promise<void> {
     token.used = true;
-    await this.resetTokenRepo.save(token);
+    await this.resetTokenRepository.save(token);
+  }
+
+  // 🔹 Nettoyage automatique des anciens tokens expirés (optionnel)
+  async cleanExpiredTokens(): Promise<void> {
+    const now = new Date();
+    await this.resetTokenRepository.delete({ expiresAt: LessThan(now) });
   }
 }

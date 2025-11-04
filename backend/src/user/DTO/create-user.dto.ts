@@ -11,7 +11,7 @@ export class CreateUserDto {
 
   @IsNotEmpty()
   @IsDateString()
-  birthDate: string; // Ou Date selon votre configuration
+  birthDate: string; // Ou Date selon ta configuration
 
   @IsNotEmpty()
   @IsEmail()
@@ -19,7 +19,7 @@ export class CreateUserDto {
 
   @IsNotEmpty()
   @IsString()
-  @MinLength(6) // Exemple de longueur minimale
+  @MinLength(6)
   password: string;
 
   @IsNotEmpty()

@@ -11,93 +11,113 @@ import { Category } from '../category/entity/category.entity';
 export class ExpenseService {
   constructor(
     @InjectRepository(Expense)
-    private expenseRepository: Repository<Expense>,
+    private readonly expenseRepository: Repository<Expense>,
 
     @InjectRepository(User)
-    private userRepository: Repository<User>,
+    private readonly userRepository: Repository<User>,
 
     @InjectRepository(Category)
-    private categoryRepository: Repository<Category>,
+    private readonly categoryRepository: Repository<Category>,
   ) {}
 
-  async create(dto: CreateExpenseDto): Promise<Expense> {
-    const user = await this.userRepository.findOneBy({ id: dto.userId });
-    if (!user) throw new NotFoundException('User not found');
+  /**
+   * 🔹 Crée une dépense ou un revenu lié à l’utilisateur connecté
+   */
+  async create(
+    createExpenseDto: CreateExpenseDto,
+    userId: number,
+  ): Promise<Expense> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('Utilisateur non trouvé');
 
     let category: Category | null = null;
-    if (dto.categoryId) {
-      category = await this.categoryRepository.findOneBy({ id: dto.categoryId });
-      if (!category) throw new NotFoundException('Category not found');
+    if (createExpenseDto.categoryId) {
+      category = await this.categoryRepository.findOne({
+        where: { id: createExpenseDto.categoryId },
+      });
+      if (!category) throw new NotFoundException('Catégorie non trouvée');
     }
 
     const expense = this.expenseRepository.create({
-      ...dto,
+      ...createExpenseDto,
+      date: new Date(createExpenseDto.date), // ✅ conversion explicite en Date
       user,
       category,
     });
 
-    return this.expenseRepository.save(expense);
+    // ✅ Le signe du montant est géré par l’entité Expense (@BeforeInsert)
+    return await this.expenseRepository.save(expense);
   }
 
+  /**
+   * 🔹 Récupère toutes les dépenses/revenus d’un utilisateur
+   */
+  async findByUser(userId: number): Promise<Expense[]> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('Utilisateur non trouvé');
 
-
-
-  findAll(): Promise<Expense[]> {
-    return this.expenseRepository.find({ relations: ['user', 'category'] });
+    return await this.expenseRepository.find({
+      where: { user: { id: userId } },
+      relations: ['category', 'user'],
+      order: { date: 'DESC' },
+    });
   }
 
+  /**
+   * 🔹 Récupère une seule dépense
+   */
   async findOne(id: number): Promise<Expense> {
     const expense = await this.expenseRepository.findOne({
       where: { id },
       relations: ['user', 'category'],
     });
 
-    if (!expense) throw new NotFoundException(`Expense ${id} not found`);
+    if (!expense) throw new NotFoundException(`Dépense ${id} introuvable`);
     return expense;
   }
 
+  /**
+   * 🔹 Met à jour une dépense (le signe du montant est corrigé automatiquement)
+   */
   async update(id: number, dto: UpdateExpenseDto): Promise<Expense> {
-    const expense = await this.expenseRepository.preload({
-      id,
-      ...dto,
+    const expense = await this.expenseRepository.findOne({
+      where: { id },
+      relations: ['user', 'category'],
     });
 
-    if (!expense) throw new NotFoundException(`Expense ${id} not found`);
+    if (!expense) throw new NotFoundException(`Dépense ${id} introuvable`);
 
-    if (dto.userId !== undefined) {
-      if (dto.userId === null) {
-        expense.user = null;
-      } else {
-        const user = await this.userRepository.findOneBy({ id: dto.userId });
-        if (!user) throw new NotFoundException('User not found');
-        expense.user = user;
-      }
-    }
+    if (dto.label !== undefined) expense.label = dto.label;
+    if (dto.amount !== undefined) expense.amount = dto.amount;
+
+    // ✅ conversion propre du champ date
+    if (dto.date !== undefined) expense.date = new Date(dto.date);
+
+    if (dto.type !== undefined) expense.type = dto.type;
 
     if (dto.categoryId !== undefined) {
       if (dto.categoryId === null) {
         expense.category = null;
       } else {
-        const category = await this.categoryRepository.findOneBy({ id: dto.categoryId });
-        if (!category) throw new NotFoundException('Category not found');
+        const category = await this.categoryRepository.findOne({
+          where: { id: dto.categoryId },
+        });
+        if (!category) throw new NotFoundException('Catégorie non trouvée');
         expense.category = category;
       }
     }
 
-    await this.expenseRepository.save(expense);
-    return this.findOne(expense.id); // recharge avec relations
+    // ✅ @BeforeUpdate() dans l'entité s'occupe du signe du montant
+    return await this.expenseRepository.save(expense);
   }
 
-  async findOneWithCategory(id: number): Promise<Expense> {
-    return this.expenseRepository.findOne({
-      where: { id },
-      relations: ['category'],
-    });
-  }
-
+  /**
+   * 🔹 Supprime une dépense
+   */
   async remove(id: number): Promise<void> {
-    const expense = await this.expenseRepository.findOneBy({ id });
-    if (!expense) throw new NotFoundException('Expense not found');
+    const expense = await this.expenseRepository.findOne({ where: { id } });
+    if (!expense) throw new NotFoundException('Dépense introuvable');
+
     await this.expenseRepository.remove(expense);
   }
 }

@@ -111,15 +111,14 @@ describe('UserService', () => {
 
   /* ------------------------------------------------------------------ */
   describe('updatePassword()', () => {
-    it('met à jour le mot de passe et retourne le user', async () => {
-      const user    = { id: 1, email: 'a@b.c', password: 'old' } as User;
-      const updated = { ...user, password: 'new' } as User;
-
+    it('met à jour le mot de passe et ne retourne rien', async () => {
+      const user = { id: 1, email: 'a@b.c', password: 'old' } as User;
       repo.findOne.mockResolvedValue(user);
-      repo.save.mockResolvedValue(updated);
+      repo.save.mockResolvedValue({ ...user, password: 'newHashed' });
 
-      await expect(service.updatePassword('a@b.c', 'new')).resolves.toEqual(updated);
-      expect(repo.save).toHaveBeenCalledWith(updated);
+      await expect(service.updatePassword('a@b.c', 'new')).resolves.toBeUndefined();
+      expect(repo.findOne).toHaveBeenCalledWith({ where: { email: 'a@b.c' } });
+      expect(repo.save).toHaveBeenCalled();
     });
 
     it('lance NotFoundException si email inconnu', async () => {
