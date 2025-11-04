@@ -1,7 +1,8 @@
 import { useState } from "react";
 import EyePassIcon from "../assets/Eye-Pass.svg";
 import VectorIcon from "../assets/Vector.svg";
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const Login = () => {
     const [email, setEmail] = useState("");
@@ -9,7 +10,9 @@ const Login = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
     const navigate = useNavigate();
+    const { login } = useAuth();
 
     const handleLogin = async () => {
         if (isLoading) return;
@@ -18,53 +21,13 @@ const Login = () => {
         setError(null);
 
         try {
-            const response = await fetch("http://localhost:3000/auth/login", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ email, password }),
-            });
+            // ✅ Appel du contexte Auth
+            const success = await login(email, password);
 
-            const data = await response.json();
-
-            if (response.ok && data.access_token) {
-                // ✅ Réinitialiser complètement le localStorage
-                localStorage.clear();
-
-                // ✅ Stocker le token
-                localStorage.setItem('token', data.access_token);
-
-                // ✅ Stocker l'utilisateur (si dispo) ou le récupérer
-                if (data.user) {
-                    localStorage.setItem('user', JSON.stringify(data.user));
-                    navigate('/dashboard');
-                } else {
-                    try {
-                        const userResponse = await fetch('http://localhost:3000/auth/me', {
-                            headers: { 'Authorization': `Bearer ${data.access_token}` }
-                        });
-
-                        if (userResponse.ok) {
-                            const userData = await userResponse.json();
-                            localStorage.setItem('user', JSON.stringify(userData));
-                            navigate('/dashboard');
-                        } else {
-                            const minimalUser = { email, firstname: email.split('@')[0], lastname: '', id: Date.now() };
-                            localStorage.setItem('user', JSON.stringify(minimalUser));
-                            navigate('/dashboard');
-                        }
-                    } catch {
-                        const minimalUser = { email, firstname: email.split('@')[0], lastname: '', id: Date.now() };
-                        localStorage.setItem('user', JSON.stringify(minimalUser));
-                        navigate('/dashboard');
-                    }
-                }
-
-                // 🔄 Forcer un reload pour repartir propre
-                window.location.href = '/dashboard';
+            if (success) {
+                navigate("/dashboard");
             } else {
-                setError(data.message || "Échec de la connexion");
+                setError("Email ou mot de passe incorrect");
             }
         } catch (err) {
             console.error("Erreur lors de la connexion :", err);
@@ -79,7 +42,9 @@ const Login = () => {
             {/* En-tête */}
             <div className="w-full flex items-center space-x-3">
                 <img src="/logo.svg" alt="Finéo Logo" className="w-44 h-44" />
-                <span className="text-black font-bold text-lg">L'outil pour la nouvelle finance</span>
+                <span className="text-black font-bold text-lg">
+                    L'outil pour la nouvelle finance
+                </span>
             </div>
 
             {/* Titre */}
@@ -89,7 +54,9 @@ const Login = () => {
             <div className="bg-login w-[600px] max-w-[600px] rounded-lg p-12 mt-12 shadow-md">
                 {/* Champ Email */}
                 <div className="mb-6 rounded-full">
-                    <label className="block text-black text-[32px] text-left mb-2">E-mail</label>
+                    <label className="block text-black text-[32px] text-left mb-2">
+                        E-mail
+                    </label>
                     <input
                         type="email"
                         placeholder="email"
@@ -101,7 +68,12 @@ const Login = () => {
 
                 {/* Champ Mot de passe */}
                 <div className="mb-6">
-                    <label htmlFor="password" className="block text-black text-[32px] text-left mb-2">Mot de passe</label>
+                    <label
+                        htmlFor="password"
+                        className="block text-black text-[32px] text-left mb-2"
+                    >
+                        Mot de passe
+                    </label>
                     <div className="relative">
                         <input
                             type={showPassword ? "text" : "password"}
@@ -115,10 +87,17 @@ const Login = () => {
                             className="absolute inset-y-0 right-4 flex items-center cursor-pointer"
                             onClick={() => setShowPassword(!showPassword)}
                         >
-              {showPassword ? <img src={VectorIcon} alt="Hide Password" /> : <img src={EyePassIcon} alt="Show Password" />}
-            </span>
+                            {showPassword ? (
+                                <img src={VectorIcon} alt="Hide Password" />
+                            ) : (
+                                <img src={EyePassIcon} alt="Show Password" />
+                            )}
+                        </span>
                     </div>
-                    <Link to="/forgot-password" className="text-sm text-black mt-2 cursor-pointer text-left">
+                    <Link
+                        to="/forgot-password"
+                        className="text-sm text-black mt-2 cursor-pointer text-left"
+                    >
                         Mot de passe oublié ?
                     </Link>
                 </div>

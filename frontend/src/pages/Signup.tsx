@@ -211,9 +211,9 @@ const Signup = () => {
                             className="mr-2 w-5 h-5"
                         />
                         <label htmlFor="cgu" className="text-[16px] text-black cursor-pointer">
-                            J’accepte les{" "}
+                            {" "}
                             <Link to="/cgu" className="text-blue-600 underline">
-                                conditions générales d’utilisation
+	                              J'ai lu et j'accepte les conditions générales
                             </Link>
                         </label>
                     </div>

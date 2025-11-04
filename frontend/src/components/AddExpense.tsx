@@ -1,134 +1,188 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Expense } from "../Types/types";
+import { Category } from "./CategoryList";
+import { useAuth } from "../Context/AuthContext";
+import { useTheme } from "../Context/ThemeContext";
 
 interface AddExpenseProps {
-    onAdd: (expense: Expense) => void;
-    userId: string;
-    onUpdate: () => void;
-    categories: { id: number; name: string }[];
+	onAdd: (expense: Expense) => void;
+	onUpdate: () => void;
+	categories: Category[];
 }
 
-export default function AddExpense({ onAdd, userId, onUpdate, categories }: AddExpenseProps) {
-    const [form, setForm] = useState({
-        label: "",
-        amount: "",
-        type: "expense", // ✅ par défaut une dépense
-        categoryId: "",
-    });
+export default function AddExpense({
+	                                   onAdd,
+	                                   onUpdate,
+	                                   categories,
+                                   }: AddExpenseProps) {
+	const { token } = useAuth();
+	const { theme } = useTheme();
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        setForm({ ...form, [e.target.name]: e.target.value });
-    };
+	const [formData, setFormData] = useState({
+		label: "",
+		amount: "",
+		type: "expense",
+		date: new Date().toISOString().split("T")[0],
+		categoryId: "",
+	});
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+	const [error, setError] = useState<string | null>(null);
 
-        const newExpense: Expense = {
-            id: Date.now(), // provisoire, backend doit générer
-            label: form.label,
-            amount: Number(form.amount),
-            type: form.type as "expense" | "income",
-            date: new Date().toISOString(), // ✅ ajout de la date locale
-            category: categories.find((c) => c.id === Number(form.categoryId)),
-        };
+	const handleChange = (
+		e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+	) => {
+		const { name, value } = e.target;
+		setFormData((prev) => ({ ...prev, [name]: value }));
+	};
 
-        // 👉 envoie vers le backend
-        const token = localStorage.getItem("token");
-        const res = await fetch("http://localhost:3000/expenses", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-                label: form.label,
-                amount: Number(form.amount),
-                type: form.type,
-                date: new Date().toISOString(), // ✅ envoi obligatoire pour @IsDateString
-                categoryId: Number(form.categoryId),
-                userId: Number(userId),
-            }),
-        });
+	const handleSubmit = async (e: React.FormEvent) => {
+		e.preventDefault();
 
-        if (!res.ok) {
-            console.error("Erreur lors de l’ajout de la dépense");
-            return;
-        }
+		if (!token) {
+			setError("Vous devez être connecté pour ajouter une dépense.");
+			return;
+		}
 
-        const saved = await res.json();
-        onAdd(saved); // ✅ ajoute à l’état parent
-        onUpdate();
+		try {
+			const response = await fetch("http://localhost:3000/expenses", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${token}`,
+				},
+				body: JSON.stringify({
+					label: formData.label.trim(),
+					amount:
+						formData.type === "expense"
+							? -Math.abs(parseFloat(formData.amount))
+							: Math.abs(parseFloat(formData.amount)),
+					type: formData.type,
+					date: formData.date,
+					categoryId: formData.categoryId ? parseInt(formData.categoryId) : null,
+				}),
+			});
 
-        // reset form
-        setForm({ label: "", amount: "", type: "expense", categoryId: "" });
-    };
+			if (!response.ok) {
+				const data = await response.json();
+				throw new Error(data.message || "Erreur lors de la création de la dépense");
+			}
 
-    return (
-        <form onSubmit={handleSubmit} className="space-y-3">
-            <input
-                type="text"
-                name="label"
-                value={form.label}
-                onChange={handleChange}
-                placeholder="Libellé"
-                required
-                className="border rounded p-2 w-full"
-            />
+			const newExpense: Expense = await response.json();
+			onAdd(newExpense);
+			onUpdate();
 
-            <input
-                type="number"
-                name="amount"
-                value={form.amount}
-                onChange={handleChange}
-                placeholder="Montant"
-                required
-                className="border rounded p-2 w-full"
-            />
+			setFormData({
+				label: "",
+				amount: "",
+				type: "expense",
+				date: new Date().toISOString().split("T")[0],
+				categoryId: "",
+			});
+			setError(null);
+		} catch (err) {
+			console.error("Erreur lors de l’ajout :", err);
+			setError(err instanceof Error ? err.message : "Erreur inconnue");
+		}
+	};
 
-            {/* ✅ Boutons radio adaptés */}
-            <div className="flex gap-4">
-                <label>
-                    <input
-                        type="radio"
-                        name="type"
-                        value="expense"
-                        checked={form.type === "expense"}
-                        onChange={handleChange}
-                    />{" "}
-                    Dépense
-                </label>
-                <label>
-                    <input
-                        type="radio"
-                        name="type"
-                        value="income"
-                        checked={form.type === "income"}
-                        onChange={handleChange}
-                    />{" "}
-                    Revenu
-                </label>
-            </div>
+	return (
+		<form
+			onSubmit={handleSubmit}
+			className={`flex flex-col gap-4 p-4 rounded-lg shadow transition-colors ${
+				theme === "light"
+					? "bg-white text-gray-900"
+					: "bg-[#1f1f1f] text-gray-100"
+			}`}
+		>
+			<label className="font-semibold">Libellé</label>
+			<input
+				type="text"
+				name="label"
+				placeholder="Ex: courses, salaire..."
+				value={formData.label}
+				onChange={handleChange}
+				required
+				className={`border rounded px-3 py-2 focus:outline-none focus:ring-2 ${
+					theme === "light"
+						? "bg-white border-gray-300 focus:ring-green-400"
+						: "bg-[#2a2a2a] border-gray-600 focus:ring-green-500"
+				}`}
+			/>
 
-            <select
-                name="categoryId"
-                value={form.categoryId}
-                onChange={handleChange}
-                className="border rounded p-2 w-full"
-            >
-                <option value="">-- Choisir une catégorie --</option>
-                {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                        {cat.name}
-                    </option>
-                ))}
-            </select>
+			<label className="font-semibold">Montant</label>
+			<input
+				type="number"
+				name="amount"
+				placeholder="Ex: 50"
+				value={formData.amount}
+				onChange={handleChange}
+				required
+				className={`border rounded px-3 py-2 focus:outline-none focus:ring-2 ${
+					theme === "light"
+						? "bg-white border-gray-300 focus:ring-green-400"
+						: "bg-[#2a2a2a] border-gray-600 focus:ring-green-500"
+				}`}
+			/>
 
-            <button
-                type="submit"
-                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition"
-            >
-                Ajouter
-            </button>
-        </form>
-    );
+			<label className="font-semibold">Type</label>
+			<div className="flex gap-4">
+				<label className="flex items-center gap-1">
+					<input
+						type="radio"
+						name="type"
+						value="expense"
+						checked={formData.type === "expense"}
+						onChange={handleChange}
+						className="accent-red-500"
+					/>
+					Dépense
+				</label>
+				<label className="flex items-center gap-1">
+					<input
+						type="radio"
+						name="type"
+						value="income"
+						checked={formData.type === "income"}
+						onChange={handleChange}
+						className="accent-green-500"
+					/>
+					Revenu
+				</label>
+			</div>
+
+			<label className="font-semibold">Catégorie</label>
+			<select
+				name="categoryId"
+				value={formData.categoryId}
+				onChange={handleChange}
+				className={`border rounded px-3 py-2 focus:outline-none focus:ring-2 ${
+					theme === "light"
+						? "bg-white border-gray-300 focus:ring-green-400"
+						: "bg-[#2a2a2a] border-gray-600 focus:ring-green-500"
+				}`}
+			>
+				<option value="">-- Choisir une catégorie --</option>
+				{categories.map((cat) => (
+					<option key={cat.id} value={cat.id}>
+						{cat.name}
+					</option>
+				))}
+			</select>
+
+			<button
+				type="submit"
+				className={`w-full py-2 rounded font-semibold text-white transition ${
+					formData.type === "expense"
+						? "bg-[#c0392b] hover:bg-[#a93226]"
+						: "bg-[#179C6E] hover:bg-[#127B77]"
+				}`}
+			>
+				{formData.type === "expense"
+					? "Ajouter une dépense"
+					: "Ajouter un revenu"}
+			</button>
+
+			{error && <p className="text-red-500 text-sm text-center">{error}</p>}
+		</form>
+	);
 }

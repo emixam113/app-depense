@@ -1,137 +1,154 @@
-import { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 
 export interface Category {
-    id: number;
-    name: string;
-    color: string;
+	id: number;
+	name: string;
+	color: string;
+	isDefault: boolean;
 }
 
 interface CategoryListProps {
-    token: string | null;
-    onCategoryAdded: (category: Category) => void;
-    onDeleteCategory: (id: number) => void;
+	token: string | null;
+	onCategoryAdded: (category: Category) => void;
+	onDeleteCategory: (id: number) => void;
 }
 
-const CategoryList = ({ token, onCategoryAdded, onDeleteCategory }: CategoryListProps) => {
-    const [categories, setCategories] = useState<Category[]>([]);
-    const [newCategory, setNewCategory] = useState("");
-    const [color, setColor] = useState("#000000");
+export default function CategoryList({
+	                                     token,
+	                                     onCategoryAdded,
+	                                     onDeleteCategory,
+                                     }: CategoryListProps) {
+	const [categories, setCategories] = useState<Category[]>([]);
+	const [newCategory, setNewCategory] = useState("");
+	const [color, setColor] = useState("#000000");
 
-    // Charger les catégories existantes
-    useEffect(() => {
-        if (!token) return;
-        const fetchCategories = async () => {
-            try {
-                const res = await fetch("http://localhost:3000/categories", {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                if (!res.ok) throw new Error("Erreur lors du chargement des catégories");
-                const data = await res.json();
-                setCategories(data);
-            } catch (error) {
-                console.error(error);
-            }
-        };
-        fetchCategories();
-    }, [token]);
+	//  Charger les catégories
+	useEffect(() => {
+		const fetchCategories = async () => {
+			if (!token) return;
+			const res = await fetch("http://localhost:3000/categories", {
+				headers: { Authorization: `Bearer ${token}` },
+			});
+			const data = await res.json();
+			setCategories(data);
+		};
+		fetchCategories();
+	}, [token]);
 
-    // Ajouter une catégorie
-    const handleAddCategory = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newCategory.trim() || !token) return;
+	//  Ajouter une catégorie
+	const handleAdd = async () => {
+		if (!newCategory.trim()) return;
 
-        try {
-            const res = await fetch("http://localhost:3000/categories", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ name: newCategory, color }),
-            });
+		const res = await fetch("http://localhost:3000/categories", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${token}`,
+			},
+			body: JSON.stringify({ name: newCategory, color }),
+		});
 
-            if (!res.ok) throw new Error("Erreur lors de l'ajout de la catégorie");
+		if (res.ok) {
+			const cat = await res.json();
+			setCategories((prev) => [...prev, cat]);
+			onCategoryAdded(cat);
+			setNewCategory("");
+		}
+	};
 
-            const created = await res.json();
+	// Supprimer une catégorie
+	const handleDelete = async (id: number) => {
+		const res = await fetch(`http://localhost:3000/categories/${id}`, {
+			method: "DELETE",
+			headers: { Authorization: `Bearer ${token}` },
+		});
 
-            // ✅ On met à jour le state directement
-            setCategories((prev) => [...prev, created]);
-            onCategoryAdded(created);
+		if (res.ok) {
+			setCategories((prev) => prev.filter((c) => c.id !== id));
+			onDeleteCategory(id);
+		}
+	};
 
-            setNewCategory("");
-            setColor("#000000");
-        } catch (error) {
-            console.error(error);
-        }
-    };
+	// Séparer les catégories
+	const defaultCategories = categories.filter((c) => c.isDefault);
+	const userCategories = categories.filter((c) => !c.isDefault);
 
-    // Supprimer une catégorie
-    const handleDeleteCategory = async (id: number) => {
-        if (!token) return;
-        try {
-            const res = await fetch(`http://localhost:3000/categories/${id}`, {
-                method: "DELETE",
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            if (!res.ok) throw new Error("Erreur lors de la suppression");
+	return (
+		<div>
+			{/* === Ajout d’une catégorie === */}
+			<div className="flex gap-2 mb-4">
+				<input
+					type="text"
+					placeholder="Nom de la catégorie"
+					value={newCategory}
+					onChange={(e) => setNewCategory(e.target.value)}
+					className="border rounded px-2 py-1 flex-1"
+				/>
+				<input
+					type="color"
+					value={color}
+					onChange={(e) => setColor(e.target.value)}
+					className="border rounded w-10"
+				/>
+				<button
+					onClick={handleAdd}
+					className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
+				>
+					Ajouter
+				</button>
+			</div>
 
-            setCategories((prev) => prev.filter((c) => c.id !== id));
-            onDeleteCategory(id);
-        } catch (error) {
-            console.error(error);
-        }
-    };
+			{/* === Catégories par défaut === */}
+			<h4 className="font-semibold text-gray-700 mb-2">
+				️ Catégories par défaut
+			</h4>
+			<ul className="mb-4">
+				{defaultCategories.map((cat) => (
+					<li key={cat.id} className="flex justify-between items-center py-1 border-b">
+						<div className="flex items-center gap-2">
+              <span
+	              className="w-3 h-3 rounded-full"
+	              style={{ backgroundColor: cat.color }}
+              ></span>
+							{cat.name}
+						</div>
+						<span className="text-gray-400 text-sm italic">(non modifiable)</span>
+					</li>
+				))}
+			</ul>
 
-    return (
-        <div>
-            {/* Formulaire d’ajout */}
-            <form onSubmit={handleAddCategory} className="flex items-center gap-2 mb-4">
-                <input
-                    type="text"
-                    placeholder="Nom de la catégorie"
-                    value={newCategory}
-                    onChange={(e) => setNewCategory(e.target.value)}
-                    className="flex-1 border rounded px-2 py-1"
-                />
-                <input
-                    type="color"
-                    value={color}
-                    onChange={(e) => setColor(e.target.value)}
-                    className="w-10 h-10 p-0 border rounded"
-                />
-                <button
-                    type="submit"
-                    className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
-                >
-                    Ajouter
-                </button>
-            </form>
-
-            {/* Liste des catégories */}
-            <ul className="space-y-2">
-                {categories.map((c) => (
-                    <li
-                        key={c.id}
-                        className="flex justify-between items-center bg-gray-50 px-3 py-2 rounded"
-                    >
-                        <span className="flex items-center gap-2">
-                            <span
-                                className="w-4 h-4 rounded-full"
-                                style={{ backgroundColor: c.color }}
-                            ></span>
-                            {c.name}
-                        </span>
-                        <button
-                            onClick={() => handleDeleteCategory(c.id)}
-                            className="text-red-600 hover:underline"
-                        >
-                            Supprimer
-                        </button>
-                    </li>
-                ))}
-            </ul>
-        </div>
-    );
-};
-
-export default CategoryList;
+			{/* === Catégories personnalisées === */}
+			<h4 className="font-semibold text-gray-700 mb-2">
+				Catégories personnalisées
+			</h4>
+			<ul>
+				{userCategories.length === 0 ? (
+					<li className="text-gray-400 text-sm italic">
+						Aucune catégorie personnalisée
+					</li>
+				) : (
+					userCategories.map((cat) => (
+						<li
+							key={cat.id}
+							className="flex justify-between items-center py-1 border-b"
+						>
+							<div className="flex items-center gap-2">
+                <span
+	                className="w-3 h-3 rounded-full"
+	                style={{ backgroundColor: cat.color }}
+                ></span>
+								{cat.name}
+							</div>
+							<button
+								onClick={() => handleDelete(cat.id)}
+								className="text-red-500 hover:underline"
+							>
+								Supprimer
+							</button>
+						</li>
+					))
+				)}
+			</ul>
+		</div>
+	);
+}
