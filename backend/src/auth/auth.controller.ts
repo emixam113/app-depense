@@ -15,7 +15,7 @@ import { Request } from 'express';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  // 🔐 Connexion
+  //Connexion
   @Post('login')
   async login(
     @Body() body: { email: string; password: string },
@@ -27,7 +27,7 @@ export class AuthController {
     return this.authService.login(email, password);
   }
 
-  // 🆕 Inscription
+  // Inscription
   @Post('signup')
   async signup(
     @Body()
@@ -43,7 +43,7 @@ export class AuthController {
     return this.authService.signup(body);
   }
 
-  // 📧 Demande de réinitialisation du mot de passe
+  //Demande de réinitialisation du mot de passe
   @Post('forgot-password')
   async forgotPassword(@Body() body: { email: string }) {
     const { email } = body;
@@ -53,7 +53,7 @@ export class AuthController {
     return this.authService.forgotPassword(email);
   }
 
-  // 🔑 Réinitialisation du mot de passe avec le code reçu
+  //Réinitialisation du mot de passe avec le code reçu
   @Post('reset-password')
   async resetPassword(
     @Body()
@@ -68,10 +68,10 @@ export class AuthController {
     return this.authService.resetPassword(email, code, newPassword);
   }
 
-  // 👤 Récupération du profil utilisateur (protégée par JWT)
+  //Récupération du profil utilisateur (protégée par JWT)
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   getProfile(@Req() req: Request) {
-    return req.user; // ✅ Le payload JWT contient { sub, email }
+    return req.user; //Le payload JWT contient { sub, email }
   }
 }

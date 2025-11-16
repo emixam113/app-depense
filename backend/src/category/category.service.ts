@@ -30,8 +30,7 @@ export class CategoryService {
       where: [
         { isDefault: true },
         { user: { id: user.id } },
-      ],
-      order: { name: 'ASC' },
+      ],      order: { name: 'ASC' },
     });
   }
 
@@ -60,7 +59,6 @@ export class CategoryService {
     }
     return this.categoryRepository.save(category);
   }
-
 
   async remove(id: number): Promise<void> {
     const category = await this.categoryRepository.findOneBy({ id });

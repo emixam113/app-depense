@@ -20,41 +20,34 @@ export class ExpenseService {
     private readonly categoryRepository: Repository<Category>,
   ) {}
 
-  /**
-   * 🔹 Crée une dépense ou un revenu lié à l’utilisateur connecté
-   */
+  //Crée une dépense ou un revenu lié à l’utilisateur connecté
   async create(
     createExpenseDto: CreateExpenseDto,
     userId: number,
   ): Promise<Expense> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user) throw new NotFoundException('Utilisateur non trouvé');
+    if (!user) throw new NotFoundException('User not found');
 
     let category: Category | null = null;
     if (createExpenseDto.categoryId) {
       category = await this.categoryRepository.findOne({
         where: { id: createExpenseDto.categoryId },
       });
-      if (!category) throw new NotFoundException('Catégorie non trouvée');
+      if (!category) throw new NotFoundException('Catégory not found');
     }
-
     const expense = this.expenseRepository.create({
       ...createExpenseDto,
-      date: new Date(createExpenseDto.date), // ✅ conversion explicite en Date
+      date: new Date(createExpenseDto.date),
       user,
       category,
     });
-
-    // ✅ Le signe du montant est géré par l’entité Expense (@BeforeInsert)
     return await this.expenseRepository.save(expense);
   }
 
-  /**
-   * 🔹 Récupère toutes les dépenses/revenus d’un utilisateur
-   */
+   //récupère une dépense particulière
   async findByUser(userId: number): Promise<Expense[]> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user) throw new NotFoundException('Utilisateur non trouvé');
+    if (!user) throw new NotFoundException('User not found');
 
     return await this.expenseRepository.find({
       where: { user: { id: userId } },
@@ -63,38 +56,32 @@ export class ExpenseService {
     });
   }
 
-  /**
-   * 🔹 Récupère une seule dépense
-   */
+  // Récupère une seule dépense
   async findOne(id: number): Promise<Expense> {
     const expense = await this.expenseRepository.findOne({
       where: { id },
       relations: ['user', 'category'],
     });
 
-    if (!expense) throw new NotFoundException(`Dépense ${id} introuvable`);
+    if (!expense) throw new NotFoundException(`Expense ${id} not found`);
     return expense;
   }
 
-  /**
-   * 🔹 Met à jour une dépense (le signe du montant est corrigé automatiquement)
-   */
+  //Met à jour une dépense (le signe du montant est corrigé automatiquement)
   async update(id: number, dto: UpdateExpenseDto): Promise<Expense> {
     const expense = await this.expenseRepository.findOne({
       where: { id },
       relations: ['user', 'category'],
     });
 
-    if (!expense) throw new NotFoundException(`Dépense ${id} introuvable`);
+    if (!expense) throw new NotFoundException(`Expense ${id}  not found`);
 
     if (dto.label !== undefined) expense.label = dto.label;
     if (dto.amount !== undefined) expense.amount = dto.amount;
 
-    // ✅ conversion propre du champ date
+  //conversion de la date
     if (dto.date !== undefined) expense.date = new Date(dto.date);
-
     if (dto.type !== undefined) expense.type = dto.type;
-
     if (dto.categoryId !== undefined) {
       if (dto.categoryId === null) {
         expense.category = null;
@@ -102,21 +89,17 @@ export class ExpenseService {
         const category = await this.categoryRepository.findOne({
           where: { id: dto.categoryId },
         });
-        if (!category) throw new NotFoundException('Catégorie non trouvée');
+        if (!category) throw new NotFoundException('Category not found');
         expense.category = category;
       }
     }
-
-    // ✅ @BeforeUpdate() dans l'entité s'occupe du signe du montant
     return await this.expenseRepository.save(expense);
   }
 
-  /**
-   * 🔹 Supprime une dépense
-   */
+  //Supprime une dépense
   async remove(id: number): Promise<void> {
     const expense = await this.expenseRepository.findOne({ where: { id } });
-    if (!expense) throw new NotFoundException('Dépense introuvable');
+    if (!expense) throw new NotFoundException('Expense not found');
 
     await this.expenseRepository.remove(expense);
   }

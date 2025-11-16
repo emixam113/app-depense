@@ -20,7 +20,7 @@ import {JwtAuthGuard} from '../auth/JWT/jwt-auth.guard';
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
 
-  // 📦 Création d'une catégorie
+  //Création d'une catégorie
   @UseGuards(JwtAuthGuard)
   @Post()
   async create(@Body() dto: CreateCategoryDto, @Req() req) {
@@ -32,7 +32,7 @@ export class CategoryController {
     }
   }
 
-  // 📜 Récupérer toutes les catégories (défaut + user)
+ //récupère toutes les catégories (par défaut et utilisateur)
   @UseGuards(JwtAuthGuard)
   @Get()
   async findAll(@Req() req) {
@@ -40,7 +40,7 @@ export class CategoryController {
     return this.categoryService.findAllForUser(user);
   }
 
-  // 🔍 Récupérer une catégorie par ID
+  //Récupérer une catégorie par ID
   @UseGuards(JwtAuthGuard)
   @Get(':id')
   async findOne(@Param('id') id: number) {
@@ -55,7 +55,7 @@ export class CategoryController {
     }
   }
 
-  // ✏️ Mettre à jour une catégorie
+  //Mettre à jour une catégorie
   @UseGuards(JwtAuthGuard)
   @Put(':id')
   async update(@Param('id') id: number, @Body() dto: UpdateCategoryDto) {
@@ -73,7 +73,7 @@ export class CategoryController {
     }
   }
 
-  // 🗑️ Supprimer une catégorie
+  //Supprimer une catégorie
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
   async remove(@Param('id') id: number) {

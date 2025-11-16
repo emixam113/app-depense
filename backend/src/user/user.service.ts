@@ -13,9 +13,9 @@ export class UserService {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  // 🔹 Créer un nouvel utilisateur
+  //Créer un nouvel utilisateur
   async create(createUserDto: CreateUserDto): Promise<User> {
-    const { email, password, confirmPassword, birthDate, ...rest } = createUserDto;
+    const { email, password, birthDate, ...rest } = createUserDto;
 
     // Vérifie si l'email existe déjà
     const existingUser = await this.userRepository.findOne({ where: { email } });
@@ -23,12 +23,7 @@ export class UserService {
       throw new BadRequestException('Un utilisateur avec cet email existe déjà.');
     }
 
-    // Vérifie les mots de passe
-    if (password !== confirmPassword) {
-      throw new BadRequestException('Les mots de passe ne correspondent pas.');
-    }
-
-    // Hash du mot de passe
+    //Hash du mot de passe
     const hashedPassword = await argon2.hash(password);
 
     // Création de l'utilisateur
@@ -42,12 +37,12 @@ export class UserService {
     return this.userRepository.save(newUser);
   }
 
-  // 🔹 Récupérer tous les utilisateurs
+  //Récupérer tous les utilisateurs
   async findAll(): Promise<User[]> {
     return this.userRepository.find();
   }
 
-  // 🔹 Récupérer un utilisateur par ID
+  //Récupérer un utilisateur par ID
   async findOne(id: number): Promise<User> {
     const user = await this.userRepository.findOne({ where: { id } });
     if (!user) {
@@ -60,10 +55,11 @@ export class UserService {
   async findByEmail(email: string): Promise<User | null> {
     return this.userRepository
       .createQueryBuilder('user')
-      .addSelect('user.password') // 🔥 récupère aussi le mot de passe
+      .addSelect('user.password')
       .where('user.email = :email', { email })
       .getOne();
   }
+
   // 🔹 Mettre à jour un utilisateur
   async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
     const user = await this.findOne(id);
@@ -73,13 +69,11 @@ export class UserService {
       updateUserDto.password = await argon2.hash(updateUserDto.password);
     }
 
-    // Met à jour les champs
     Object.assign(user, updateUserDto);
-
     return this.userRepository.save(user);
   }
 
-  // 🔹 Mettre à jour uniquement le mot de passe (utilisé par AuthService)
+  // 🔹 Mettre à jour uniquement le mot de passe
   async updatePassword(userId: string, hashedPassword: string): Promise<void> {
     const user = await this.userRepository.findOne({ where: { id: parseInt(userId) } });
     if (!user) throw new NotFoundException('Utilisateur non trouvé');

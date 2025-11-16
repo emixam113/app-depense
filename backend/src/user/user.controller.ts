@@ -20,43 +20,43 @@ import { JwtAuthGuard } from '../auth/JWT/jwt-auth.guard';
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  // 🔹 Récupère le profil de l'utilisateur connecté via JWT
+  // Récupère le profil de l'utilisateur connecté via JWT
   @UseGuards(JwtAuthGuard)
   @Get('me')
   getProfile(@Req() req) {
     return req.user;
   }
 
-  // 🔹 Crée un nouvel utilisateur (inscription)
+  // Crée un nouvel utilisateur (inscription)
   @Post()
   async create(@Body() createUserDto: CreateUserDto): Promise<User> {
     return this.userService.create(createUserDto);
   }
 
-  // 🔹 Récupère tous les utilisateurs
+  // Récupère tous les utilisateurs
   @Get()
   async findAll(): Promise<User[]> {
     return this.userService.findAll();
   }
 
-  // 🔹 Récupère un utilisateur par ID
+  // Récupère un utilisateur par ID
   @Get(':id')
   async findOne(@Param('id', ParseIntPipe) id: number): Promise<User> {
-    return this.userService.findOne(id); // ✅ corrigé
+    return this.userService.findOne(id);
   }
 
-  // 🔹 Met à jour un utilisateur par ID
+  //Met à jour un utilisateur par ID
   @Patch(':id')
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateUserDto: UpdateUserDto,
   ): Promise<User> {
-    return this.userService.update(id, updateUserDto); // ✅ corrigé
+    return this.userService.update(id, updateUserDto);
   }
 
-  // 🔹 Supprime un utilisateur par ID
+  //Supprime un utilisateur par ID
   @Delete(':id')
   async remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
-    return this.userService.remove(id); // ✅ corrigé
+    return this.userService.remove(id);
   }
 }

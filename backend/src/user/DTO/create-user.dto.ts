@@ -11,7 +11,7 @@ export class CreateUserDto {
 
   @IsNotEmpty()
   @IsDateString()
-  birthDate: string; // Ou Date selon ta configuration
+  birthDate: string;
 
   @IsNotEmpty()
   @IsEmail()
@@ -21,8 +21,4 @@ export class CreateUserDto {
   @IsString()
   @MinLength(6)
   password: string;
-
-  @IsNotEmpty()
-  @IsString()
-  confirmPassword: string;
 }

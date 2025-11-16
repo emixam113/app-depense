@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan, MoreThan } from 'typeorm'; // ✅ ajout de MoreThan
+import { Repository, LessThan, MoreThan } from 'typeorm';
 import { ResetToken } from './entity/reset-token.entity';
 import { User } from '../user/entity/user.entity';
 
@@ -11,7 +11,7 @@ export class ResetTokenService {
     private readonly resetTokenRepository: Repository<ResetToken>,
   ) {}
 
-  // 🔹 Crée un nouveau token de réinitialisation
+  //Crée un nouveau token de réinitialisation
   async createToken(user: User): Promise<ResetToken> {
     const code = Math.floor(100 + Math.random() * 900).toString(); // ex: 403
 
@@ -31,7 +31,7 @@ export class ResetTokenService {
     return this.resetTokenRepository.save(resetToken);
   }
 
-  // 🔹 Trouve un token valide
+  //Trouve un token valide
   async findValidToken(user: User, code: string): Promise<ResetToken | null> {
     const now = new Date();
 
@@ -40,7 +40,7 @@ export class ResetTokenService {
         user: { id: user.id },
         code,
         used: false,
-        expiresAt: MoreThan(now), // ✅ fonctionne avec l'import
+        expiresAt: MoreThan(now),
       },
       relations: ['user'],
     });
