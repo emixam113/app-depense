@@ -2,7 +2,7 @@ import { useState } from "react";
 import EyePassIcon from "../assets/Eye-Pass.svg";
 import VectorIcon from "../assets/Vector.svg";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../Context/AuthContext";
 
 const Login = () => {
     const [email, setEmail] = useState("");
@@ -98,7 +98,7 @@ const Login = () => {
                         to="/forgot-password"
                         className="text-sm text-black mt-2 cursor-pointer text-left"
                     >
-                        Mot de passe oublié ?
+                        Mot de passe oublié?
                     </Link>
                 </div>
 

@@ -1,7 +1,3 @@
-
-
-
-
 export const categoryColors: Record<string, string> = {
     Salaire: "#10B981",
     Logement: "#3B82F6",
@@ -13,12 +9,12 @@ export const categoryColors: Record<string, string> = {
 };
 
 
-//fonction utilitaire pour récupérer une couleur
+//fonction utilitaire pour récupérer une couleur en fonction de la catégorie
 export const getCategoryColor = (category: string): string => {
     return categoryColors[category] || "#9CA3AF"
 };
 
-//Liste des couleurs disponibles si tu veux un sélecteur:
+//Liste des couleurs disponibles pour sélecteur:
 
 export const avialiableCategoryColors: string[] = [
     "#34D399",

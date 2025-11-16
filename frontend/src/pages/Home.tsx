@@ -22,7 +22,7 @@ export default function Home() {
                     to="/forgot-password"
                     className="text-gray-500 cursor-pointer hover:underline"
                 >
-                    Mot de passe oublié ?
+                 Mot de passe oublié ?
                 </Link>
             </div>
         </div>

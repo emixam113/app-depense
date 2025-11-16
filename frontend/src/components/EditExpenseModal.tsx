@@ -20,7 +20,7 @@ const EditExpenseModal = ({ expense, onClose, onSave, token }: Props) => {
         amount: expense.amount,
         date: expense.date,
         type: expense.type,
-        categoryId: expense.category ? expense.category.id : null,
+        categoryId: expense.category ? (expense.category as any).id : null
     });
 
     const [categories, setCategories] = useState<Category[]>([]);

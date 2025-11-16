@@ -155,7 +155,7 @@ export default function AddExpense({
 				name="categoryId"
 				value={formData.categoryId}
 				onChange={handleChange}
-				className={`border rounded px-3 py-2 focus:outline-none focus:ring-2 ${
+				className={`border rounded px-3 py-2 focus:outline-none focus:ring-2 font-poppins ${
 					theme === "light"
 						? "bg-white border-gray-300 focus:ring-green-400"
 						: "bg-[#2a2a2a] border-gray-600 focus:ring-green-500"

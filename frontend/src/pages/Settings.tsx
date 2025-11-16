@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom"; // ✅ correction ici
+import { useAuth } from "../Context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 type Section = "account" | "security" | "preferences" | "notifications";
 

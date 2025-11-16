@@ -12,3 +12,6 @@
     --font-poppins: "Poppins", sans-serif;
     --font-accessible: "Atkinson Hyperlegible", sans-serif;
 }
+select option {
+    font-family: var(--font-poppins);
+}

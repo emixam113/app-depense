@@ -106,7 +106,7 @@ export default function Dashboard() {
 		if (!user) navigate("/login");
 	}, [user, navigate]);
 
-	const handleAddExpense = (expense: Expense) => {
+	const handleAddExpense = () => {
 		refreshExpenses();
 	};
 
@@ -235,7 +235,7 @@ export default function Dashboard() {
 					}`}
 				>
 					<h3 className="text-lg font-semibold mb-3">
-						Ajouter une dépense / revenu
+						Ajouter une dépense
 					</h3>
 					<AddExpense
 						onAdd={handleAddExpense}

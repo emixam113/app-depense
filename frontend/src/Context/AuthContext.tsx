@@ -9,8 +9,8 @@ import React, {
 interface User {
 	id: number;
 	email: string;
-	firstname?: string;
-	lastname?: string;
+	firstName?: string;
+	lastName?: string;
 }
 
 interface Expense {
@@ -50,7 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 	const [token, setToken] = useState<string | null>(null);
 	const [isInitialized, setIsInitialized] = useState(false);
 
-	// 🔹 Charger les infos depuis localStorage
+	//Charger les infos depuis localStorage
 	useEffect(() => {
 		const storedUser = localStorage.getItem("user");
 		const storedToken = localStorage.getItem("token");
@@ -69,7 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 		setIsInitialized(true);
 	}, []);
 
-	// 🔹 Récupérer les dépenses depuis le backend
+	//Récupérer les dépenses depuis le backend
 	const fetchExpenses = useCallback(
 		async (authToken?: string) => {
 			const tokenToUse = authToken || token;
@@ -89,19 +89,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 				setExpenses(data);
 				localStorage.setItem(`expenses_${user.id}`, JSON.stringify(data));
 			} catch (error) {
-				console.error("❌ Erreur fetchExpenses:", error);
+				console.error(" Erreur fetchExpenses:", error);
 			}
 		},
 		[token, user]
 	);
 
-	// 🔹 Rafraîchir les dépenses manuellement
+	//  Rafraîchir les dépenses manuellement
 	const refreshExpenses = useCallback(async () => {
 		if (!token || !user) return;
 		await fetchExpenses(token);
 	}, [fetchExpenses, token, user]);
 
-	// 🔹 Connexion utilisateur
+	//  Connexion utilisateur
 	const login = async (email: string, password: string): Promise<boolean> => {
 		try {
 			const res = await fetch("http://localhost:3000/auth/login", {
@@ -113,7 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 			const data = await res.json();
 
 			if (!res.ok || !data.access_token) {
-				console.error("❌ Erreur login:", data.message);
+				console.error("Erreur login:", data.message);
 				return false;
 			}
 
@@ -121,7 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 			setToken(accessToken);
 			localStorage.setItem("token", accessToken);
 
-			// 🔹 Récupération du profil
+			//Récupération du profil
 			const profileRes = await fetch("http://localhost:3000/users/me", {
 				headers: { Authorization: `Bearer ${accessToken}` },
 			});
@@ -136,12 +136,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
 			return true;
 		} catch (error) {
-			console.error("❌ Erreur login:", error);
+			console.error(" Erreur login:", error);
 			return false;
 		}
 	};
 
-	// 🔹 Déconnexion
+	//Déconnexion
 	const logout = () => {
 		if (user) localStorage.removeItem(`expenses_${user.id}`);
 		localStorage.removeItem("user");
@@ -151,7 +151,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 		setExpenses([]);
 	};
 
-	// 🔹 Mettre à jour les infos utilisateur localement
+	// Mettre à jour les infos utilisateur localement
 	const updateUser = (fields: Partial<User>) => {
 		setUser((prev) => {
 			if (!prev) return prev;
@@ -161,7 +161,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 		});
 	};
 
-	// 🔹 Chargement automatique des dépenses après connexion
+	//Chargement automatique des dépenses après connexion
 	useEffect(() => {
 		if (isInitialized && user && token && expenses.length === 0) {
 			fetchExpenses(token);
