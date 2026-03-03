@@ -1,5 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+
 import { User } from '../../user/entity/user.entity';
+
+
 
 @Entity()
 export class Method {
@@ -7,10 +10,10 @@ export class Method {
   id: number;
 
   @Column('float')
-  income: number
+  income: number;
 
   @Column('float')
-  needBudget: number
+  needBudget: number;
 
   @Column('float')
   wantBudget: number;

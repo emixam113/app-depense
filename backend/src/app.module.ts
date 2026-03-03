@@ -2,6 +2,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ScheduleModule } from '@nestjs/schedule';
 import { join } from 'path';
 
 import { AppController } from './app.controller';
@@ -13,6 +14,7 @@ import { CategoryModule } from './category/category.module';
 import { AuthModule } from './auth/auth.module';
 import { databaseConfig } from './config/database.config';
 import { MailModule } from './mail/mail.module';
+import { NotificationModule } from './Notifications/Notification.module';
 
 @Module({
   imports: [
@@ -23,14 +25,17 @@ import { MailModule } from './mail/mail.module';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => databaseConfig(configService),
+      useFactory: (configService: ConfigService) =>
+        databaseConfig(configService),
     }),
+    ScheduleModule.forRoot(),
     UserModule,
     MethodeModule,
     ExpenseModule,
     CategoryModule,
     AuthModule,
     MailModule,
+    NotificationModule, // ← AJOUT
   ],
   controllers: [AppController],
   providers: [AppService],
