@@ -36,6 +36,7 @@
     "@nestjs/swagger": "^11.2.0",
     "@nestjs/typeorm": "^11.0.0",
     "argon2": "^0.41.1",
+    "axios": "^1.13.6",
     "backend": "file:",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",

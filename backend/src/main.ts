@@ -6,7 +6,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.enableCors({
-    origin: ['http://localhost:5173', 'http://192.168.1.37:8081'],
+    origin: true,
     credentials: true,
   });
 
@@ -14,7 +14,7 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({ transform: true }));
 
   const port = process.env.PORT || 3000;
-  await app.listen(port);
+  await app.listen(0.0.0.0);
 
   Logger.log(`Application is running on: http://localhost:${port}`);
 }
