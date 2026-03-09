@@ -18,32 +18,30 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  //Inscription
+  // ════════════════════════════════════════════════════════
+  // INSCRIPTION
+  // ════════════════════════════════════════════════════════
   async signup(signupDto: any) {
     const { email, password, confirmPassword, firstName, lastName, birthDate } =
       signupDto;
 
     if (password !== confirmPassword)
-      throw new BadRequestException('password are not the same');
+      throw new BadRequestException('Les mots de passe ne correspondent pas.');
 
-    const hashedPassword = await argon2.hash(password);
-
-    // Création utilisateur
+    // ✅ Le hash est fait dans UserService.create() — pas besoin de le refaire ici
     const newUser = await this.userService.create({
       email,
-      password: hashedPassword,
+      password, // ← mot de passe en clair, UserService s'occupe du hash
       firstName,
       lastName,
       birthDate: birthDate || new Date().toISOString(),
     });
 
-    // Création du token
     const payload = { sub: newUser.id, email: newUser.email };
     const access_token = this.jwtService.sign(payload);
 
-    // Réponse envoyée au frontend
     return {
-      message: 'user is created',
+      message: 'Utilisateur créé avec succès.',
       access_token,
       user: {
         id: newUser.id,
@@ -55,30 +53,40 @@ export class AuthService {
     };
   }
 
-  // Connexion
+  // ════════════════════════════════════════════════════════
+  // CONNEXION
+  // ════════════════════════════════════════════════════════
   async login(email: string, password: string) {
     const user = await this.userService.findByEmail(email);
-    if (!user) throw new NotFoundException('Utilisateur non trouvé');
+    if (!user) throw new NotFoundException('Utilisateur non trouvé.');
 
-    if (!user.password)
-      throw new BadRequestException('User is not valid : password is not valid.');
+    if (!user.password) throw new BadRequestException('Mot de passe invalide.');
 
     const valid = await argon2.verify(user.password, password).catch(() => {
-      throw new BadRequestException('Erreur de vérification du mot de passe');
+      throw new BadRequestException('Erreur de vérification du mot de passe.');
     });
 
-    if (!valid) throw new BadRequestException('Mot de passe incorrect');
+    if (!valid) throw new BadRequestException('Mot de passe incorrect.');
 
     const payload = { sub: user.id, email: user.email };
     const access_token = this.jwtService.sign(payload);
 
-    return { message: 'Connexion réussie', access_token, user };
+    return { message: 'Connexion réussie.', access_token, user };
   }
 
-  //Demande de réinitialisation du mot de passe
+  // ════════════════════════════════════════════════════════
+  // MOT DE PASSE OUBLIÉ — envoi du code par email
+  // ════════════════════════════════════════════════════════
   async forgotPassword(email: string) {
     const user = await this.userService.findByEmail(email);
-    if (!user) throw new NotFoundException('User not valid');
+
+    // Sécurité : ne pas révéler si l'email existe ou non
+    if (!user) {
+      return {
+        message: 'Si ce compte existe, un email a été envoyé.',
+        success: true,
+      };
+    }
 
     const resetToken = await this.resetTokenService.createToken(user);
     await this.mailService.sendPasswordResetEmail(
@@ -88,27 +96,27 @@ export class AuthService {
     );
 
     return {
-      message: 'code vérification is sending.',
+      message: 'Si ce compte existe, un email a été envoyé.',
       success: true,
     };
   }
-  // Validation du code et réinitialisation du mot de passe
+
+  // ════════════════════════════════════════════════════════
+  // RÉINITIALISATION DU MOT DE PASSE
+  // ✅ CORRIGÉ — user.id directement (number), plus de toString()
+  // ════════════════════════════════════════════════════════
   async resetPassword(email: string, code: string, newPassword: string) {
     const user = await this.userService.findByEmail(email);
-    if (!user) throw new NotFoundException('Utilisateur non trouvé');
+    if (!user) throw new NotFoundException('Utilisateur non trouvé.');
 
     const resetToken = await this.resetTokenService.findValidToken(user, code);
-    if (!resetToken)
-      throw new BadRequestException('Code invalide ou expiré.');
+    if (!resetToken) throw new BadRequestException('Code invalide ou expiré.');
 
     const hashedPassword = await argon2.hash(newPassword);
-    await this.userService.updatePassword(user.id.toString(), hashedPassword);
+    await this.userService.updatePassword(user.id, hashedPassword); // ✅ number direct
 
     await this.resetTokenService.markAsUsed(resetToken);
 
-    return {
-      message: 'Mot de passe réinitialisé avec succès.',
-      success: true,
-    };
+    return { message: 'Mot de passe réinitialisé avec succès.', success: true };
   }
-};
+}

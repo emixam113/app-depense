@@ -17,24 +17,23 @@ export class NotificationService {
   ) {}
 
   // ════════════════════════════════════════════════════════
-  // ENREGISTRER LE TOKEN PUSH D'UN UTILISATEUR
-  // Appelé depuis NotificationController après le login
+  // ENREGISTRER LE TOKEN PUSH
+  // ✅ CORRIGÉ — userId en number, update direct sur le repo
   // ════════════════════════════════════════════════════════
-  async savePushToken(userId: string, pushToken: string): Promise<void> {
+  async savePushToken(userId: number, pushToken: string): Promise<void> {
     await this.userRepository.update(userId, { pushToken });
     this.logger.log(`[Push] Token enregistré pour user ${userId}`);
   }
 
   // ════════════════════════════════════════════════════════
   // ANALYSER ET NOTIFIER après chaque transaction
-  // Appelé depuis ExpenseService après ajout d'une transaction
   // ════════════════════════════════════════════════════════
   async analyzeAndNotify(params: {
     pushToken: string;
-    changeDepenses: number; // variation % dépenses vs mois dernier
-    changeRevenus: number; // variation % revenus vs mois dernier
-    currentDepenses: number; // total dépenses ce mois
-    currentRevenus: number; // total revenus ce mois
+    changeDepenses: number;
+    changeRevenus: number;
+    currentDepenses: number;
+    currentRevenus: number;
   }): Promise<void> {
     const {
       pushToken,
@@ -45,28 +44,24 @@ export class NotificationService {
     } = params;
     if (!pushToken) return;
 
-    // 1. Dépenses +20% vs mois dernier
     if (changeDepenses >= 20 && currentDepenses > 0)
       await this.pushService.notifyExpensesUp(pushToken, changeDepenses);
 
-    // 2. Revenus en baisse de -10%
     if (changeRevenus <= -10 && currentRevenus > 0)
       await this.pushService.notifyRevenuesDown(pushToken, changeRevenus);
 
-    // 3. Économies détectées (-10% de dépenses)
     if (changeDepenses <= -10 && currentDepenses > 0)
       await this.pushService.notifyExpensesDown(pushToken, changeDepenses);
   }
 
   // ════════════════════════════════════════════════════════
   // ALERTE BUDGET DÉPASSÉ
-  // Appelé depuis ExpenseService après chaque dépense
   // ════════════════════════════════════════════════════════
   async checkAndNotifyBudget(params: {
     pushToken: string;
     categoryName: string;
-    spent: number; // total dépensé dans la catégorie ce mois
-    budget: number; // budget max défini par l'utilisateur
+    spent: number;
+    budget: number;
   }): Promise<void> {
     const { pushToken, categoryName, spent, budget } = params;
     if (!pushToken || !budget) return;
@@ -92,15 +87,13 @@ export class NotificationService {
   }
 
   // ════════════════════════════════════════════════════════
-  // CRON JOB — RAPPORT MENSUEL
-  // Se déclenche automatiquement le 1er de chaque mois à 9h00
+  // CRON JOB — RAPPORT MENSUEL le 1er du mois à 9h00
   // ════════════════════════════════════════════════════════
   @Cron('0 9 1 * *')
   async sendMonthlyReports(): Promise<void> {
     this.logger.log('[Push] Démarrage envoi rapports mensuels...');
 
     try {
-      // Récupérer tous les utilisateurs avec leurs transactions
       const users = await this.userRepository.find({ relations: ['expenses'] });
       const usersWithToken = users.filter((u) => u.pushToken);
 
@@ -109,7 +102,6 @@ export class NotificationService {
         return;
       }
 
-      // Calculer les stats du mois précédent
       const now = new Date();
       const prevMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
       const prevYear =

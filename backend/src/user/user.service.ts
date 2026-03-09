@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entity/user.entity';
@@ -13,20 +17,23 @@ export class UserService {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  //Créer un nouvel utilisateur
+  // ════════════════════════════════════════════════════════
+  // CRÉER UN UTILISATEUR
+  // ════════════════════════════════════════════════════════
   async create(createUserDto: CreateUserDto): Promise<User> {
     const { email, password, birthDate, ...rest } = createUserDto;
 
-    // Vérifie si l'email existe déjà
-    const existingUser = await this.userRepository.findOne({ where: { email } });
+    const existingUser = await this.userRepository.findOne({
+      where: { email },
+    });
     if (existingUser) {
-      throw new BadRequestException('Un utilisateur avec cet email existe déjà.');
+      throw new BadRequestException(
+        'Un utilisateur avec cet email existe déjà.',
+      );
     }
 
-    //Hash du mot de passe
     const hashedPassword = await argon2.hash(password);
 
-    // Création de l'utilisateur
     const newUser = this.userRepository.create({
       ...rest,
       email,
@@ -37,12 +44,16 @@ export class UserService {
     return this.userRepository.save(newUser);
   }
 
-  //Récupérer tous les utilisateurs
+  // ════════════════════════════════════════════════════════
+  // RÉCUPÉRER TOUS LES UTILISATEURS
+  // ════════════════════════════════════════════════════════
   async findAll(): Promise<User[]> {
     return this.userRepository.find();
   }
 
-  //Récupérer un utilisateur par ID
+  // ════════════════════════════════════════════════════════
+  // RÉCUPÉRER UN UTILISATEUR PAR ID
+  // ════════════════════════════════════════════════════════
   async findOne(id: number): Promise<User> {
     const user = await this.userRepository.findOne({ where: { id } });
     if (!user) {
@@ -51,7 +62,9 @@ export class UserService {
     return user;
   }
 
-  // 🔹 Récupérer un utilisateur par email
+  // ════════════════════════════════════════════════════════
+  // RÉCUPÉRER UN UTILISATEUR PAR EMAIL
+  // ════════════════════════════════════════════════════════
   async findByEmail(email: string): Promise<User | null> {
     return this.userRepository
       .createQueryBuilder('user')
@@ -60,11 +73,25 @@ export class UserService {
       .getOne();
   }
 
-  // 🔹 Mettre à jour un utilisateur
+  // ════════════════════════════════════════════════════════
+  // METTRE À JOUR UN UTILISATEUR
+  // ════════════════════════════════════════════════════════
   async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
     const user = await this.findOne(id);
 
-    // Si on modifie le mot de passe → on le rehash
+    // Vérifier si le nouvel email n'est pas déjà pris par quelqu'un d'autre
+    if (updateUserDto.email && updateUserDto.email !== user.email) {
+      const existing = await this.userRepository.findOne({
+        where: { email: updateUserDto.email },
+      });
+      if (existing) {
+        throw new BadRequestException(
+          'Cet email est déjà utilisé par un autre compte.',
+        );
+      }
+    }
+
+    // Rehash si modification du mot de passe
     if (updateUserDto.password) {
       updateUserDto.password = await argon2.hash(updateUserDto.password);
     }
@@ -73,16 +100,31 @@ export class UserService {
     return this.userRepository.save(user);
   }
 
-  // 🔹 Mettre à jour uniquement le mot de passe
-  async updatePassword(userId: string, hashedPassword: string): Promise<void> {
-    const user = await this.userRepository.findOne({ where: { id: parseInt(userId) } });
+  // ════════════════════════════════════════════════════════
+  // METTRE À JOUR LE MOT DE PASSE
+  // ✅ CORRIGÉ — id en number, plus de parseInt risqué
+  // ════════════════════════════════════════════════════════
+  async updatePassword(userId: number, hashedPassword: string): Promise<void> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('Utilisateur non trouvé');
 
     user.password = hashedPassword;
     await this.userRepository.save(user);
   }
 
-  // 🔹 Supprimer un utilisateur
+  // ════════════════════════════════════════════════════════
+  // ENREGISTRER LE TOKEN PUSH
+  // ✅ AJOUT — utilisé par NotificationService backend
+  // ════════════════════════════════════════════════════════
+  async savePushToken(userId: number, pushToken: string): Promise<void> {
+    const user = await this.findOne(userId);
+    user.pushToken = pushToken;
+    await this.userRepository.save(user);
+  }
+
+  // ════════════════════════════════════════════════════════
+  // SUPPRIMER UN UTILISATEUR
+  // ════════════════════════════════════════════════════════
   async remove(id: number): Promise<void> {
     const result = await this.userRepository.delete(id);
     if (result.affected === 0) {
