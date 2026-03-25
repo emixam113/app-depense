@@ -39,7 +39,7 @@
     "axios": "^1.13.6",
     "backend": "file:",
     "class-transformer": "^0.5.1",
-    "class-validator": "^0.14.2",
+    "class-validator": "^0.14.4",
     "crypto": "^1.0.1",
     "handlebars": "^4.7.8",
     "helmet": "^8.1.0",

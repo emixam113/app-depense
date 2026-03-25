@@ -22,7 +22,7 @@ describe('ExpenseController (Unit)', () => {
     createdAt: new Date(),
     updateAt: new Date(),
     normalizeAmount:() => {},
-  } as any.
+  } as any;
 
   const mockService = {
     create: jest.fn(),

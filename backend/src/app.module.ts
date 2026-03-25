@@ -15,6 +15,7 @@ import { AuthModule } from './auth/auth.module';
 import { databaseConfig } from './config/database.config';
 import { MailModule } from './mail/mail.module';
 import { NotificationModule } from './Notifications/Notification.module';
+import { ExportModule } from './export/export.module';
 
 @Module({
   imports: [
@@ -35,7 +36,8 @@ import { NotificationModule } from './Notifications/Notification.module';
     CategoryModule,
     AuthModule,
     MailModule,
-    NotificationModule, // ← AJOUT
+    NotificationModule,
+    ExportModule,
   ],
   controllers: [AppController],
   providers: [AppService],
