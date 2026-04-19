@@ -1,4 +1,4 @@
-// src/Notifications/Notification.controller.ts
+// src/Notifications/notification.controller.ts
 import {
   Controller,
   Post,

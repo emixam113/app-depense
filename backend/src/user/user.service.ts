@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entity/user.entity';
@@ -13,17 +17,21 @@ export class UserService {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  //Créer un nouvel utilisateur
+  // Créer un nouvel utilisateur
   async create(createUserDto: CreateUserDto): Promise<User> {
     const { email, password, birthDate, ...rest } = createUserDto;
 
     // Vérifie si l'email existe déjà
-    const existingUser = await this.userRepository.findOne({ where: { email } });
+    const existingUser = await this.userRepository.findOne({
+      where: { email },
+    });
     if (existingUser) {
-      throw new BadRequestException('Un utilisateur avec cet email existe déjà.');
+      throw new BadRequestException(
+        'Un utilisateur avec cet email existe déjà.',
+      );
     }
 
-    //Hash du mot de passe
+    // Hash du mot de passe
     const hashedPassword = await argon2.hash(password);
 
     // Création de l'utilisateur
@@ -33,16 +41,15 @@ export class UserService {
       password: hashedPassword,
       birthDate: new Date(birthDate),
     });
-
     return this.userRepository.save(newUser);
   }
 
-  //Récupérer tous les utilisateurs
+  // Récupérer tous les utilisateurs
   async findAll(): Promise<User[]> {
     return this.userRepository.find();
   }
 
-  //Récupérer un utilisateur par ID
+  // Récupérer un utilisateur par ID
   async findOne(id: number): Promise<User> {
     const user = await this.userRepository.findOne({ where: { id } });
     if (!user) {
@@ -75,7 +82,8 @@ export class UserService {
 
   // 🔹 Mettre à jour uniquement le mot de passe
   async updatePassword(userId: string, hashedPassword: string): Promise<void> {
-    const user = await this.userRepository.findOne({ where: { id: parseInt(userId) } });
+    // Utilisation de findOneBy pour éviter les erreurs de typage TS2345
+    const user = await this.userRepository.findOneBy({ id: parseInt(userId) });
     if (!user) throw new NotFoundException('Utilisateur non trouvé');
 
     user.password = hashedPassword;
@@ -88,5 +96,13 @@ export class UserService {
     if (result.affected === 0) {
       throw new NotFoundException(`Utilisateur avec l'ID ${id} non trouvé`);
     }
+  }
+
+  // 🔹 Met à jour le statut Premium
+  async updatePremiumStatus(id: number, isPremium: boolean): Promise<void> {
+    const user = await this.findOne(id);
+
+    user.isPremium = isPremium;
+    await this.userRepository.save(user);
   }
 }

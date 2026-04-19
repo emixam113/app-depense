@@ -1,4 +1,12 @@
-import { IsString, IsNumber, IsDateString, IsOptional, IsInt, IsIn } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsDateString,
+  IsOptional,
+  IsInt,
+  IsIn,
+  IsBoolean,
+} from 'class-validator';
 
 export class CreateExpenseDto {
   @IsString()
@@ -20,4 +28,8 @@ export class CreateExpenseDto {
   @IsOptional()
   @IsInt()
   userId?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isRecurring?: boolean;
 }

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, FindOptionsWhere } from 'typeorm';
 import { Expense } from '../expense/entity/expense.entity';
+import { User } from '../user/entity/user.entity';
 import { ExportQueryDto } from './dto/export-query.dto';
 
 @Injectable()
@@ -9,9 +10,15 @@ export class ExportService {
   constructor(
     @InjectRepository(Expense)
     private readonly expenseRepository: Repository<Expense>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
   ) {}
 
   async exportToCsv(userId: number, filters: ExportQueryDto): Promise<string> {
+    // Récupère l'utilisateur depuis le JWT (pas de param contrôlé par le client → pas d'IDOR)
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    const fullName = user ? `${user.firstName} ${user.lastName}` : 'Inconnu';
+
     const where: FindOptionsWhere<Expense> = {
       user: { id: userId },
     };
@@ -50,6 +57,10 @@ export class ExportService {
     // ✅ BOM UTF-8 pour Excel
     const BOM = '\uFEFF';
 
+    // Lignes d'info utilisateur en haut du fichier
+    const userLine = `"Exporté par : ${fullName}"`;
+    const dateLine = `"Date d'export : ${new Date().toLocaleDateString('fr-FR')}"`;
+
     const headers = [
       'Date',
       'Libellé',
@@ -82,6 +93,7 @@ export class ExportService {
       totalDepenses.toFixed(2).replace('.', ','),
       '',
     ].join(';');
+
     const summaryIncome = [
       '',
       '"Total revenus"',
@@ -90,6 +102,18 @@ export class ExportService {
       '',
     ].join(';');
 
-    return BOM + [headers, ...rows, '', summary, summaryIncome].join('\n');
+    return (
+      BOM +
+      [
+        userLine,
+        dateLine,
+        '',
+        headers,
+        ...rows,
+        '',
+        summary,
+        summaryIncome,
+      ].join('\n')
+    );
   }
 }

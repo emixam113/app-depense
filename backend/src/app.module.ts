@@ -14,8 +14,9 @@ import { CategoryModule } from './category/category.module';
 import { AuthModule } from './auth/auth.module';
 import { databaseConfig } from './config/database.config';
 import { MailModule } from './mail/mail.module';
-import { NotificationModule } from './Notifications/Notification.module';
+import { NotificationModule } from './Notifications/notification.module';
 import { ExportModule } from './export/export.module';
+import { PaymentModule } from './payment/payment.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { ExportModule } from './export/export.module';
     MailModule,
     NotificationModule,
     ExportModule,
+    PaymentModule,
   ],
   controllers: [AppController],
   providers: [AppService],

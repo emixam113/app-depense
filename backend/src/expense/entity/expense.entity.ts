@@ -29,6 +29,9 @@ export class Expense {
   @Column({ type: 'date' })
   date: Date;
 
+  @Column({ type: 'boolean', default: false })
+  isRecurring: boolean;
+
   @ManyToOne(() => User, (user) => user.expenses, {
     onDelete: 'CASCADE',
     eager: false,
@@ -58,12 +61,11 @@ export class Expense {
   @BeforeInsert()
   @BeforeUpdate()
   normalizeAmount() {
-    this.type = this.type?.toLowerCase() as 'expense' | 'income'; // ✅ sécurité
-
+    this.type = this.type?.toLowerCase() as 'expense' | 'income';
     if (this.type === 'expense') {
-      this.amount = -Math.abs(Number(this.amount)); // Dépense → négatif
+      this.amount = -Math.abs(Number(this.amount));
     } else if (this.type === 'income') {
-      this.amount = Math.abs(Number(this.amount)); // Revenu → positif
+      this.amount = Math.abs(Number(this.amount));
     }
   }
 }

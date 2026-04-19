@@ -1,8 +1,8 @@
-// src/Notifications/Notification.module.ts
+// src/Notifications/notification.module.ts
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { PushService } from './Push.service';
-import { NotificationController } from './Notification.controller';
+import { PushService } from './push.service';
+import { NotificationController } from './notification.controller';
 import { NotificationService } from './Notification.service';
 import { User } from '../user/entity/user.entity';
 

@@ -2,7 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { Expense } from '../../expense/entity/expense.entity';
 import { Method } from '../../methode/entity/method.entity';
 import { ResetToken } from '../../auth/entity/reset-token.entity';
-import { Category } from '../../category/entity/category.entity'; // ✅ import ajouté
+import { Category } from '../../category/entity/category.entity';
 
 @Entity('user')
 export class User {
@@ -26,6 +26,9 @@ export class User {
 
   @Column({ nullable: true })
   pushToken: string;
+
+  @Column({ default: false})
+  isPremium: boolean;
 
   @OneToMany(() => Expense, (expense) => expense.user, { cascade: true })
   expenses: Expense[];
