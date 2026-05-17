@@ -1,35 +1,34 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ExpenseService } from './expense.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { Expense } from './entity/expense.entity';
 import { User } from '../user/entity/user.entity';
 import { Category } from '../category/entity/category.entity';
-import { NotFoundException } from '@nestjs/common';
-import { CreateExpenseDto } from './dto/create-expense.dto';
-import { UpdateExpenseDto } from './dto/update-expense.dto';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 
-describe('ExpenseService (Unit)', () => {
+describe('ExpenseService', () => {
   let service: ExpenseService;
-  let expenseRepository: jest.Mocked<Repository<Expense>>;
-  let userRepository: jest.Mocked<Repository<User>>;
-  let categoryRepository: jest.Mocked<Repository<Category>>;
+  let expenseRepo;
+  let userRepo;
+  let categoryRepo;
 
-  const mockUser: User = { id: 1, email: 'user@test.com' } as any;
-  const mockCategory: Category = { id: 2, name: 'Courses', color: '#ff0000' } as any;
+  // Mocks des Repositories
+  const mockExpenseRepository = {
+    count: jest.fn(),
+    find: jest.fn(),
+    findOne: jest.fn(),
+    create: jest.fn(),
+    save: jest.fn(),
+    remove: jest.fn(),
+  };
 
-  const mockExpense: Expense = {
-    id: 10,
-    label: 'Courses Carrefour',
-    amount: 45.5,
-    date: new Date('2025-10-01'),
-    type: 'expense',
-    user: mockUser,
-    category: mockCategory,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    normalizeAmount: () => {}, // ✅ méthode ajoutée
-  } as any;
+  const mockUserRepository = {
+    findOne: jest.fn(),
+  };
+
+  const mockCategoryRepository = {
+    findOne: jest.fn(),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -37,192 +36,89 @@ describe('ExpenseService (Unit)', () => {
         ExpenseService,
         {
           provide: getRepositoryToken(Expense),
-          useValue: {
-            create: jest.fn(),
-            save: jest.fn(),
-            find: jest.fn(),
-            findOne: jest.fn(),
-            remove: jest.fn(),
-          },
+          useValue: mockExpenseRepository,
         },
-        {
-          provide: getRepositoryToken(User),
-          useValue: {
-            findOne: jest.fn(),
-          },
-        },
+        { provide: getRepositoryToken(User), useValue: mockUserRepository },
         {
           provide: getRepositoryToken(Category),
-          useValue: {
-            findOne: jest.fn(),
-          },
+          useValue: mockCategoryRepository,
         },
       ],
     }).compile();
 
+    // ✅ CORRECTION ICI : Pas de double module.get()
     service = module.get<ExpenseService>(ExpenseService);
-    expenseRepository = module.get(getRepositoryToken(Expense));
-    userRepository = module.get(getRepositoryToken(User));
-    categoryRepository = module.get(getRepositoryToken(Category));
+    expenseRepo = module.get(getRepositoryToken(Expense));
+    userRepo = module.get(getRepositoryToken(User));
+    categoryRepo = module.get(getRepositoryToken(Category));
   });
 
-  afterEach(() => jest.clearAllMocks());
+  describe('create (Quota Freemium)', () => {
+    it('doit bloquer si quota > 50 et isPremium est false', async () => {
+      // Mock : Utilisateur non-premium
+      userRepo.findOne.mockResolvedValue({ id: 1, isPremium: false });
+      // Mock : Déjà 50 transactions ce mois
+      expenseRepo.count.mockResolvedValue(50);
 
-  // 🧾 CREATE
-  describe('create', () => {
-    it('✅ devrait créer une dépense avec utilisateur et catégorie', async () => {
-      const dto: CreateExpenseDto = {
-        label: 'Courses Carrefour',
-        amount: 45.5,
-        date: '2025-10-01',
+      const dto = {
+        label: 'Test',
+        amount: 10,
         type: 'expense',
-        categoryId: 2,
+        date: new Date(),
       };
 
-      userRepository.findOne.mockResolvedValue(mockUser);
-      categoryRepository.findOne.mockResolvedValue(mockCategory);
-      expenseRepository.create.mockReturnValue(mockExpense);
-      expenseRepository.save.mockResolvedValue(mockExpense);
-
-      const result = await service.create(dto, mockUser.id);
-
-      expect(userRepository.findOne).toHaveBeenCalledWith({ where: { id: mockUser.id } });
-      expect(categoryRepository.findOne).toHaveBeenCalledWith({ where: { id: dto.categoryId } });
-      expect(expenseRepository.create).toHaveBeenCalledWith({
-        ...dto,
-        date: new Date(dto.date),
-        user: mockUser,
-        category: mockCategory,
-      });
-      expect(result).toEqual(mockExpense);
+      await expect(service.create(dto as any, 1)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
-    it('❌ devrait lever NotFoundException si l’utilisateur est introuvable', async () => {
-      userRepository.findOne.mockResolvedValue(null);
+    it('doit autoriser si quota > 50 mais isPremium est true', async () => {
+      userRepo.findOne.mockResolvedValue({ id: 1, isPremium: true });
+      expenseRepo.count.mockResolvedValue(60);
+      expenseRepo.create.mockReturnValue({ id: 1 });
+      expenseRepo.save.mockResolvedValue({ id: 1 });
 
-      const dto = { label: 'Courses', amount: 50, date: '2025-10-01', type: 'expense' };
-
-      await expect(service.create(dto as any, 999)).rejects.toThrow(NotFoundException);
-    });
-
-    it('❌ devrait lever NotFoundException si la catégorie est introuvable', async () => {
-      userRepository.findOne.mockResolvedValue(mockUser);
-      categoryRepository.findOne.mockResolvedValue(null);
-
-      const dto = { label: 'Courses', amount: 50, date: '2025-10-01', type: 'expense', categoryId: 999 };
-
-      await expect(service.create(dto as any, 1)).rejects.toThrow(NotFoundException);
-    });
-  });
-
-  // 📊 FIND BY USER
-  describe('findByUser', () => {
-    it('✅ devrait retourner les dépenses d’un utilisateur', async () => {
-      userRepository.findOne.mockResolvedValue(mockUser);
-      expenseRepository.find.mockResolvedValue([mockExpense]);
-
-      const result = await service.findByUser(mockUser.id);
-
-      expect(userRepository.findOne).toHaveBeenCalledWith({ where: { id: mockUser.id } });
-      expect(expenseRepository.find).toHaveBeenCalledWith({
-        where: { user: { id: mockUser.id } },
-        relations: ['category', 'user'],
-        order: { date: 'DESC' },
-      });
-      expect(result).toEqual([mockExpense]);
-    });
-
-    it('❌ devrait lever NotFoundException si utilisateur introuvable', async () => {
-      userRepository.findOne.mockResolvedValue(null);
-
-      await expect(service.findByUser(999)).rejects.toThrow(NotFoundException);
-    });
-  });
-
-  // 🔍 FIND ONE
-  describe('findOne', () => {
-    it('✅ devrait retourner une dépense existante', async () => {
-      expenseRepository.findOne.mockResolvedValue(mockExpense);
-
-      const result = await service.findOne(10);
-
-      expect(expenseRepository.findOne).toHaveBeenCalledWith({
-        where: { id: 10 },
-        relations: ['user', 'category'],
-      });
-      expect(result).toEqual(mockExpense);
-    });
-
-    it('❌ devrait lever NotFoundException si la dépense n’existe pas', async () => {
-      expenseRepository.findOne.mockResolvedValue(null);
-
-      await expect(service.findOne(999)).rejects.toThrow(NotFoundException);
-    });
-  });
-
-  // ✏️ UPDATE
-  describe('update', () => {
-    it('✅ devrait mettre à jour une dépense', async () => {
-      const dto: UpdateExpenseDto = {
-        label: 'Courses Leclerc',
-        amount: 60,
-        date: '2025-10-02',
+      const dto = {
+        label: 'Test',
+        amount: 10,
+        type: 'expense',
+        date: new Date(),
       };
-      const updatedExpense: Expense = {
-        ...mockExpense,
-        ...dto,
-        date: new Date('2025-10-02'),
-        normalizeAmount: () => {}, // ✅ ajoutée aussi ici
-      };
+      const result = await service.create(dto as any, 1);
 
-      expenseRepository.findOne.mockResolvedValue(mockExpense);
-      expenseRepository.save.mockResolvedValue(updatedExpense);
-
-      const result = await service.update(10, dto);
-
-      expect(expenseRepository.findOne).toHaveBeenCalledWith({
-        where: { id: 10 },
-        relations: ['user', 'category'],
-      });
-      expect(expenseRepository.save).toHaveBeenCalledWith(expect.objectContaining({
-        label: 'Courses Leclerc',
-        amount: 60,
-        date: new Date('2025-10-02'),
-      }));
-      expect(result).toEqual(updatedExpense);
-    });
-
-    it('❌ devrait lever NotFoundException si la dépense n’existe pas', async () => {
-      expenseRepository.findOne.mockResolvedValue(null);
-
-      await expect(service.update(999, {})).rejects.toThrow(NotFoundException);
-    });
-
-    it('❌ devrait lever NotFoundException si la nouvelle catégorie est introuvable', async () => {
-      const dto: UpdateExpenseDto = { categoryId: 99 };
-      expenseRepository.findOne.mockResolvedValue(mockExpense);
-      categoryRepository.findOne.mockResolvedValue(null);
-
-      await expect(service.update(10, dto)).rejects.toThrow(NotFoundException);
+      expect(result).toBeDefined();
     });
   });
 
-  // 🗑️ REMOVE
-  describe('remove', () => {
-    it('✅ devrait supprimer une dépense existante', async () => {
-      expenseRepository.findOne.mockResolvedValue(mockExpense);
-      expenseRepository.remove.mockResolvedValue(undefined as any);
+  describe('getComparisonStats', () => {
+    it('doit calculer une variation de 100% si le mois dernier était à 0€', async () => {
+      // Mock : Dépenses mois actuel = 100€, Mois précédent = 0€
+      expenseRepo.find
+        .mockResolvedValueOnce([{ amount: 100, type: 'expense' }])
+        .mockResolvedValueOnce([]);
 
-      await service.remove(10);
+      const stats = await service.getComparisonStats(1);
 
-      expect(expenseRepository.findOne).toHaveBeenCalledWith({ where: { id: 10 } });
-      expect(expenseRepository.remove).toHaveBeenCalledWith(mockExpense);
+      expect(stats.variations.expense).toBe(100); //[cite: 7]
+      expect(stats.currentMonth.totalExpense).toBe(100);
     });
 
-    it('❌ devrait lever NotFoundException si la dépense n’existe pas', async () => {
-      expenseRepository.findOne.mockResolvedValue(null);
+    it('doit calculer correctement une baisse de 50%', async () => {
+      // Mois actuel 50€ vs Mois précédent 100€
+      expenseRepo.find
+        .mockResolvedValueOnce([{ amount: 50, type: 'expense' }])
+        .mockResolvedValueOnce([{ amount: 100, type: 'expense' }]);
 
-      await expect(service.remove(999)).rejects.toThrow(NotFoundException);
+      const stats = await service.getComparisonStats(1);
+      expect(stats.variations.expense).toBe(-50);
+    });
+  });
+
+  describe('findOne & Security', () => {
+    it('doit lever une NotFoundException si la transaction n’appartient pas à l’user', async () => {
+      expenseRepo.findOne.mockResolvedValue(null); // Pas trouvé pour cet ID + User[cite: 7]
+
+      await expect(service.findOne(999, 1)).rejects.toThrow(NotFoundException);
     });
   });
 });

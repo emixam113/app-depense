@@ -18,112 +18,77 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  // Inscription
+  // ✅ MÉTHODE APPELÉE PAR LE CONTROLLER POUR /profile
+  async getProfile(userId: number) {
+    return this.userService.getProfileWithBalance(userId);
+  }
+
   async signup(signupDto: any) {
     const { email, password, confirmPassword, firstName, lastName, birthDate } =
       signupDto;
-
     if (password !== confirmPassword)
-      throw new BadRequestException('password are not the same');
+      throw new BadRequestException('Mots de passe différents');
 
-    const hashedPassword = await argon2.hash(password);
-
-    // Création utilisateur
     const newUser = await this.userService.create({
       email,
-      password: hashedPassword,
+      password, // Le UserService va le hasher
       firstName,
       lastName,
       birthDate: birthDate || new Date().toISOString(),
     });
 
     const payload = { sub: newUser.id, email: newUser.email };
-    const access_token = this.jwtService.sign(payload);
-
     return {
-      message: 'user is created',
-      access_token,
+      message: 'Utilisateur créé',
+      access_token: this.jwtService.sign(payload),
       user: {
         id: newUser.id,
         email: newUser.email,
         firstName: newUser.firstName,
         lastName: newUser.lastName,
-        birthDate: newUser.birthDate,
-        isPremium: newUser.isPremium, // ✅ Ajouté pour le frontend
+        isPremium: newUser.isPremium,
       },
     };
   }
 
-  // Connexion
   async login(email: string, password: string) {
     const user = await this.userService.findByEmail(email);
     if (!user) throw new NotFoundException('Utilisateur non trouvé');
 
-    if (!user.password)
-      throw new BadRequestException(
-        'User is not valid : password is not valid.',
-      );
-
-    const valid = await argon2.verify(user.password, password).catch(() => {
-      throw new BadRequestException('Erreur de vérification du mot de passe');
-    });
-
+    const valid = await argon2.verify(user.password, password);
     if (!valid) throw new BadRequestException('Mot de passe incorrect');
 
     const payload = { sub: user.id, email: user.email };
-    const access_token = this.jwtService.sign(payload);
-
-    // ✅ On renvoie l'utilisateur sans le mot de passe mais avec isPremium
     const { password: _, ...userWithoutPassword } = user;
 
     return {
       message: 'Connexion réussie',
-      access_token,
+      access_token: this.jwtService.sign(payload),
       user: userWithoutPassword,
     };
   }
 
-  // Demande de réinitialisation du mot de passe
   async forgotPassword(email: string) {
     const user = await this.userService.findByEmail(email);
-    if (!user) throw new NotFoundException('User not valid');
-
-    // Le resetTokenService crée le token avec used = false par défaut
+    if (!user) throw new NotFoundException('Utilisateur non trouvé');
     const resetToken = await this.resetTokenService.createToken(user);
     await this.mailService.sendPasswordResetEmail(
       user.email,
       resetToken.code,
       user.firstName,
     );
-
-    return {
-      message: 'code vérification is sending.',
-      success: true,
-    };
+    return { message: 'Code envoyé', success: true };
   }
 
-  // Validation du code et réinitialisation du mot de passe
   async resetPassword(email: string, code: string, newPassword: string) {
     const user = await this.userService.findByEmail(email);
     if (!user) throw new NotFoundException('Utilisateur non trouvé');
-
-    // ✅ Doit vérifier en base : where user = user AND code = code AND used = false
     const resetToken = await this.resetTokenService.findValidToken(user, code);
-
-    if (!resetToken)
-      throw new BadRequestException('Code invalide, expiré ou déjà utilisé.');
+    if (!resetToken) throw new BadRequestException('Code invalide ou expiré');
 
     const hashedPassword = await argon2.hash(newPassword);
-
-    // Mise à jour du mot de passe
     await this.userService.updatePassword(user.id.toString(), hashedPassword);
-
-    // ✅ Marquer le token comme utilisé (Passe la colonne "used" à true)
     await this.resetTokenService.markAsUsed(resetToken);
-
-    return {
-      message: 'Mot de passe réinitialisé avec succès.',
-      success: true,
-    };
+    return { message: 'Mot de passe réinitialisé', success: true };
   }
 }

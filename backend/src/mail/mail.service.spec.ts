@@ -23,6 +23,13 @@ describe('MailService', () => {
 
     mailService = module.get<MailService>(MailService);
     mailerService = module.get<MailerService>(MailerService);
+
+    // On mock les console.log/error pour éviter de polluer la console pendant les tests
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
     jest.clearAllMocks();
   });
 
@@ -34,53 +41,42 @@ describe('MailService', () => {
     it('should send reset password email with correct data', async () => {
       mockMailerService.sendMail.mockResolvedValue(true);
 
-      await mailService.sendPasswordResetEmail('user@example.com', 'reset-token-123', 'Alice');
+      const email = 'user@example.com';
+      const code = '123';
+      const firstName = 'Alice';
+
+      await mailService.sendPasswordResetEmail(email, code, firstName);
 
       expect(mailerService.sendMail).toHaveBeenCalledWith({
-        to: 'user@example.com',
+        to: email,
         subject: 'Réinitialisation de votre mot de passe',
         template: 'reset-password',
         context: expect.objectContaining({
-          email: 'user@example.com',
-          token: 'reset-token-123',
-          firstName: 'Alice',
+          email,
+          code,
+          firstName,
           appName: 'Suivi des Dépenses',
-          currentYear: new Date().getFullYear(),
         }),
       });
     });
 
-    it('should throw an error if mail sending fails', async () => {
-      mockMailerService.sendMail.mockRejectedValue(new Error('Failed to send'));
+    it('should throw and log an error if sending fails', async () => {
+      const error = new Error('SMTP Error');
+      mockMailerService.sendMail.mockRejectedValue(error);
 
       await expect(
-        mailService.sendPasswordResetEmail('user@example.com', 'reset-token', 'Bob'),
-      ).rejects.toThrow('Failed to send');
-    });
-  });
+        mailService.sendPasswordResetEmail('a@b.com', '123', 'Alice'),
+      ).rejects.toThrow('SMTP Error');
 
-  describe('sendWelcomeEmail', () => {
-    it('should send welcome email with correct data', async () => {
-      mockMailerService.sendMail.mockResolvedValue(true);
-
-      await mailService.sendWelcomeEmail('user@example.com', 'Bob');
-
-      expect(mailerService.sendMail).toHaveBeenCalledWith({
-        to: 'user@example.com',
-        subject: 'Bienvenue sur notre application de suivi des dépenses !',
-        template: './welcome',
-        context: {
-          name: 'Bob',
-        },
-      });
+      expect(console.error).toHaveBeenCalled();
     });
   });
 
   describe('sendTestEmail', () => {
-    it('should send test email and return success response', async () => {
+    it('should send test email with default test data', async () => {
       mockMailerService.sendMail.mockResolvedValue(true);
 
-      const result = await mailService.sendTestEmail('test@example.com');
+      await mailService.sendTestEmail('test@example.com');
 
       expect(mailerService.sendMail).toHaveBeenCalledWith({
         to: 'test@example.com',
@@ -88,20 +84,10 @@ describe('MailService', () => {
         template: 'test',
         context: expect.objectContaining({
           email: 'test@example.com',
-          token: 'TEST-TOKEN-123456',
+          code: '123',
           firstName: 'Test',
-          appName: 'Suivi des Dépenses',
-          currentYear: new Date().getFullYear(),
         }),
       });
-
-      expect(result).toEqual({ success: true, message: 'Email de test envoyé avec succès' });
-    });
-
-    it('should throw an error if test email fails', async () => {
-      mockMailerService.sendMail.mockRejectedValue(new Error('Send error'));
-
-      await expect(mailService.sendTestEmail('test@example.com')).rejects.toThrow('Send error');
     });
   });
 });

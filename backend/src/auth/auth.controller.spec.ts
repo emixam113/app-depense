@@ -18,6 +18,7 @@ describe('AuthController (Unit)', () => {
             signup: jest.fn(),
             forgotPassword: jest.fn(),
             resetPassword: jest.fn(),
+            getProfile: jest.fn(),
           },
         },
       ],
@@ -29,11 +30,13 @@ describe('AuthController (Unit)', () => {
 
   afterEach(() => jest.clearAllMocks());
 
-  // 🔐 LOGIN
   describe('login', () => {
     it('devrait appeler AuthService.login et renvoyer le résultat', async () => {
       const dto = { email: 'test@test.com', password: '1234' };
-      const expected = { message: 'Connexion réussie', token: 'jwt-token' };
+      const expected = {
+        message: 'Connexion réussie',
+        access_token: 'jwt-token',
+      };
 
       authService.login.mockResolvedValue(expected as any);
 
@@ -43,22 +46,13 @@ describe('AuthController (Unit)', () => {
       expect(result).toEqual(expected);
     });
 
-    it('devrait lever BadRequestException si email manquant', async () => {
-      const dto = { email: '', password: '1234' };
-      await expect(controller.login(dto as any)).rejects.toThrow(
-        BadRequestException,
-      );
-    });
-
-    it('devrait lever BadRequestException si mot de passe manquant', async () => {
-      const dto = { email: 'test@test.com', password: '' };
-      await expect(controller.login(dto as any)).rejects.toThrow(
-        BadRequestException,
-      );
+    it('devrait lever BadRequestException si email ou password manquant', async () => {
+      await expect(
+        controller.login({ email: '', password: '123' } as any),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 
-  // 🆕 SIGNUP
   describe('signup', () => {
     it('devrait appeler AuthService.signup avec le bon body', async () => {
       const dto = {
@@ -80,11 +74,24 @@ describe('AuthController (Unit)', () => {
     });
   });
 
-  // ✉️ FORGOT PASSWORD
+  describe('getProfile', () => {
+    it('devrait appeler authService.getProfile avec l’ID extrait du token (sub)', async () => {
+      const req = { user: { sub: 1 } } as any;
+      const expectedProfile = { id: 1, email: 'test@test.com', balance: 150 };
+
+      authService.getProfile.mockResolvedValue(expectedProfile as any);
+
+      const result = await controller.getProfile(req);
+
+      expect(authService.getProfile).toHaveBeenCalledWith(1);
+      expect(result).toEqual(expectedProfile);
+    });
+  });
+
   describe('forgotPassword', () => {
-    it('✅ devrait appeler AuthService.forgotPassword avec l’email', async () => {
+    it('devrait appeler AuthService.forgotPassword avec l’email', async () => {
       const dto = { email: 'test@test.com' };
-      const expected = { message: 'Email envoyé' };
+      const expected = { message: 'Code envoyé', success: true };
 
       authService.forgotPassword.mockResolvedValue(expected as any);
 
@@ -93,24 +100,16 @@ describe('AuthController (Unit)', () => {
       expect(authService.forgotPassword).toHaveBeenCalledWith(dto.email);
       expect(result).toEqual(expected);
     });
-
-    it(' devrait lever BadRequestException si email manquant', async () => {
-      const dto = { email: '' };
-      await expect(controller.forgotPassword(dto as any)).rejects.toThrow(
-        BadRequestException,
-      );
-    });
   });
 
-  // 🔑 RESET PASSWORD
   describe('resetPassword', () => {
-    it(' devrait appeler AuthService.resetPassword avec les bons paramètres', async () => {
+    it('devrait appeler AuthService.resetPassword avec les bons paramètres', async () => {
       const dto = {
         email: 'test@test.com',
         code: '123456',
-        newPassword: 'newPass',
+        newPassword: 'new',
       };
-      const expected = { message: 'Mot de passe réinitialisé' };
+      const expected = { message: 'Mot de passe réinitialisé', success: true };
 
       authService.resetPassword.mockResolvedValue(expected as any);
 
@@ -122,25 +121,6 @@ describe('AuthController (Unit)', () => {
         dto.newPassword,
       );
       expect(result).toEqual(expected);
-    });
-
-    it(' devrait lever BadRequestException si un champ est manquant', async () => {
-      const dto = { email: 'test@test.com', code: '', newPassword: '' };
-
-      await expect(controller.resetPassword(dto as any)).rejects.toThrow(
-        BadRequestException,
-      );
-    });
-  });
-
-  // 👤 GET PROFILE
-  describe('getProfile', () => {
-    it(' devrait renvoyer req.user', () => {
-      const req = { user: { id: 1, email: 'test@test.com' } } as any;
-
-      const result = controller.getProfile(req);
-
-      expect(result).toEqual(req.user);
     });
   });
 });

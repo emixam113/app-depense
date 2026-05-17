@@ -31,7 +31,6 @@ export class ExpenseService {
     createExpenseDto: CreateExpenseDto,
     userId: number,
   ): Promise<Expense> {
-    // 1. Définition des bornes du mois actuel (Heure serveur pour éviter la triche locale)
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(
@@ -43,27 +42,24 @@ export class ExpenseService {
       59,
     );
 
-    // 2. Récupération de l'utilisateur et comptage des entrées du mois en cours
     const [user, count] = await Promise.all([
       this.userRepository.findOne({ where: { id: userId } }),
       this.expenseRepository.count({
         where: {
           user: { id: userId },
-          date: Between(startOfMonth, endOfMonth), // Filtre mensuel strict
+          date: Between(startOfMonth, endOfMonth),
         },
       }),
     ]);
 
     if (!user) throw new NotFoundException('Utilisateur introuvable');
 
-    // 3. Vérification du statut Premium et de la limite de 50
     if (!user.isPremium && count >= 50) {
       throw new ForbiddenException(
         "Limite mensuelle de 50 transactions atteinte. Débloquez l'illimité avec le Premium !",
       );
     }
 
-    // 4. Gestion de la catégorie
     let category: Category | null = null;
     if (createExpenseDto.categoryId) {
       category = await this.categoryRepository.findOne({
@@ -72,7 +68,6 @@ export class ExpenseService {
       if (!category) throw new NotFoundException('Catégorie introuvable');
     }
 
-    // 5. Enregistrement avec le nouveau champ isRecurring
     const expense = this.expenseRepository.create({
       ...createExpenseDto,
       isRecurring: createExpenseDto.isRecurring ?? false,
@@ -85,8 +80,74 @@ export class ExpenseService {
   }
 
   /**
-   * Récupère l'historique sécurisé par utilisateur
+   * Récupère les statistiques comparatives (Mois actuel vs Mois précédent)
+   * Nécessaire pour les notifications et les graphiques de tendance
    */
+  async getComparisonStats(userId: number) {
+    const now = new Date();
+
+    const startOfCurrent = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfCurrent = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+    );
+
+    const startOfPrev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endOfPrev = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      0,
+      23,
+      59,
+      59,
+    );
+
+    const [currentExpenses, prevExpenses] = await Promise.all([
+      this.expenseRepository.find({
+        where: { userId, date: Between(startOfCurrent, endOfCurrent) },
+      }),
+      this.expenseRepository.find({
+        where: { userId, date: Between(startOfPrev, endOfPrev) },
+      }),
+    ]);
+
+    const calculateTotals = (list: Expense[]) => {
+      return list.reduce(
+        (acc, curr) => {
+          const amount = Math.abs(Number(curr.amount));
+          if (curr.type === 'expense') acc.totalExpense += amount;
+          else acc.totalIncome += amount;
+          return acc;
+        },
+        { totalExpense: 0, totalIncome: 0 },
+      );
+    };
+
+    const current = calculateTotals(currentExpenses);
+    const prev = calculateTotals(prevExpenses);
+
+    const calculateVariation = (curr: number, old: number) => {
+      if (old === 0) return curr > 0 ? 100 : 0;
+      return ((curr - old) / old) * 100;
+    };
+
+    return {
+      currentMonth: {
+        ...current,
+        balance: current.totalIncome - current.totalExpense,
+      },
+      previousMonth: { ...prev, balance: prev.totalIncome - prev.totalExpense },
+      variations: {
+        expense: calculateVariation(current.totalExpense, prev.totalExpense),
+        income: calculateVariation(current.totalIncome, prev.totalIncome),
+      },
+    };
+  }
+
   async findByUser(userId: number): Promise<Expense[]> {
     return await this.expenseRepository.find({
       where: { user: { id: userId } },
@@ -95,26 +156,16 @@ export class ExpenseService {
     });
   }
 
-  /**
-   * Récupère une entrée avec protection IDOR
-   */
   async findOne(id: number, userId: number): Promise<Expense> {
     const expense = await this.expenseRepository.findOne({
       where: { id, user: { id: userId } },
       relations: ['category'],
     });
 
-    if (!expense) {
-      throw new NotFoundException(
-        `Transaction introuvable ou accès non autorisé`,
-      );
-    }
+    if (!expense) throw new NotFoundException(`Transaction introuvable`);
     return expense;
   }
 
-  /**
-   * Mise à jour incluant la modification de la récurrence
-   */
   async update(
     id: number,
     userId: number,
@@ -126,7 +177,7 @@ export class ExpenseService {
     if (dto.amount !== undefined) expense.amount = dto.amount;
     if (dto.date !== undefined) expense.date = new Date(dto.date);
     if (dto.type !== undefined) expense.type = dto.type;
-    if (dto.isRecurring !== undefined) expense.isRecurring = dto.isRecurring; // Mise à jour récurrence
+    if (dto.isRecurring !== undefined) expense.isRecurring = dto.isRecurring;
 
     if (dto.categoryId !== undefined) {
       if (dto.categoryId === null) {
@@ -143,9 +194,6 @@ export class ExpenseService {
     return await this.expenseRepository.save(expense);
   }
 
-  /**
-   * Suppression sécurisée
-   */
   async remove(id: number, userId: number): Promise<void> {
     const expense = await this.findOne(id, userId);
     await this.expenseRepository.remove(expense);

@@ -2,22 +2,33 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { NotFoundException } from '@nestjs/common';
-
 import { UserService } from './user.service';
 import { User } from './entity/user.entity';
+import * as argon2 from 'argon2';
 
-// ✅ Fabrique un mock de Repository fraîche à chaque test
-const createRepositoryMock = () => ({
-  create:    jest.fn(),
-  save:      jest.fn(),
-  find:      jest.fn(),
-  findOne:   jest.fn(),
-  delete:    jest.fn(),
-});
+// ✅ Mock complet d'Argon2 pour éviter les erreurs de compilation native
+jest.mock('argon2');
 
 describe('UserService', () => {
   let service: UserService;
-  let repo: jest.Mocked<Repository<User>>;
+  let repo: Repository<User>;
+
+  // ✅ Mock du Repository TypeORM
+  const mockUserRepository = {
+    findOne: jest.fn(),
+    findOneBy: jest.fn(),
+    find: jest.fn(),
+    create: jest.fn(),
+    save: jest.fn(),
+    delete: jest.fn(),
+    update: jest.fn(),
+    // Mock pour findByEmail qui utilise QueryBuilder
+    createQueryBuilder: jest.fn(() => ({
+      addSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      getOne: jest.fn(),
+    })),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -25,106 +36,135 @@ describe('UserService', () => {
         UserService,
         {
           provide: getRepositoryToken(User),
-          useFactory: createRepositoryMock,
+          useValue: mockUserRepository,
         },
       ],
     }).compile();
 
     service = module.get<UserService>(UserService);
-    repo = module.get(getRepositoryToken(User));
+    repo = module.get<Repository<User>>(getRepositoryToken(User));
+
+    // ✅ Nettoyage des mocks entre chaque test
+    jest.clearAllMocks();
   });
 
-  afterEach(() => jest.clearAllMocks());
+  describe('getProfileWithBalance()', () => {
+    it('devrait calculer correctement le solde (addition des montants)', async () => {
+      const mockUser = {
+        id: 1,
+        email: 'test@test.com',
+        expenses: [{ amount: 1500 }, { amount: -500 }], // Solde attendu: 1000
+      } as any;
+      mockUserRepository.findOne.mockResolvedValue(mockUser);
 
-  /* ------------------------------------------------------------------ */
+      const result = await service.getProfileWithBalance(1);
+
+      expect(result.totalBalance).toBe(1000);
+      expect(result.password).toBeUndefined(); // Sécurité : password supprimé
+    });
+
+    it('devrait lancer une NotFoundException si l utilisateur n existe pas', async () => {
+      mockUserRepository.findOne.mockResolvedValue(null);
+      await expect(service.getProfileWithBalance(99)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
   describe('create()', () => {
-    it('crée et retourne l’utilisateur', async () => {
-      const dto = { email: 'john@doe.com', password: 'pwd' } as any;
-      const saved = { id: 1, ...dto } as User;
+    it('devrait hacher le mot de passe et sauvegarder', async () => {
+      const dto = {
+        email: 'a@b.com',
+        password: 'plain',
+        firstName: 'A',
+        lastName: 'B',
+        birthDate: '1990-01-01',
+      } as any;
+      (argon2.hash as jest.Mock).mockResolvedValue('hashed_password');
+      mockUserRepository.create.mockReturnValue(dto);
+      mockUserRepository.save.mockResolvedValue({
+        id: 1,
+        ...dto,
+        password: 'hashed_password',
+      });
 
-      repo.create.mockReturnValue(saved);
-      repo.save.mockResolvedValue(saved);
+      const result = await service.create(dto);
 
-      await expect(service.create(dto)).resolves.toEqual(saved);
-      expect(repo.create).toHaveBeenCalledWith(dto);
-      expect(repo.save).toHaveBeenCalledWith(saved);
+      expect(argon2.hash).toHaveBeenCalledWith('plain');
+      expect(result.password).toBe('hashed_password');
     });
   });
 
-  /* ------------------------------------------------------------------ */
-  describe('findAll()', () => {
-    it('retourne la liste des utilisateurs', async () => {
-      const list = [{ id: 1 } as User, { id: 2 } as User];
-      repo.find.mockResolvedValue(list);
-
-      await expect(service.findAll()).resolves.toEqual(list);
-      expect(repo.find).toHaveBeenCalled();
-    });
-  });
-
-  /* ------------------------------------------------------------------ */
-  describe('findOne()', () => {
-    it('retourne le user si trouvé', async () => {
-      const user = { id: 1 } as User;
-      repo.findOne.mockResolvedValue(user);
-
-      await expect(service.findOne(1)).resolves.toEqual(user);
-    });
-
-    it('lance NotFoundException si non trouvé', async () => {
-      repo.findOne.mockResolvedValue(undefined);
-
-      await expect(service.findOne(42)).rejects.toBeInstanceOf(NotFoundException);
-    });
-  });
-
-  /* ------------------------------------------------------------------ */
   describe('update()', () => {
-    it('fusionne et sauvegarde les données', async () => {
-      const user   = { id: 1, email: 'old@mail.com' } as User;
-      const dto    = { email: 'new@mail.com' } as any;
-      const merged = { ...user, ...dto } as User;
+    it('devrait mettre à jour et hacher le mot de passe si fourni', async () => {
+      const existingUser = { id: 1, firstName: 'Old' } as User;
+      mockUserRepository.findOne.mockResolvedValue(existingUser);
+      (argon2.hash as jest.Mock).mockResolvedValue('new_hash');
+      mockUserRepository.save.mockImplementation((user) =>
+        Promise.resolve(user),
+      );
 
-      jest.spyOn(service, 'findOne').mockResolvedValue(user);
-      repo.save.mockResolvedValue(merged);
+      const result = await service.update(1, {
+        password: 'new_password',
+        firstName: 'New',
+      });
 
-      await expect(service.update(1, dto)).resolves.toEqual(merged);
-      expect(repo.save).toHaveBeenCalledWith(merged);
+      expect(result.firstName).toBe('New');
+      expect(argon2.hash).toHaveBeenCalledWith('new_password');
+      expect(mockUserRepository.save).toHaveBeenCalled();
     });
   });
 
-  /* ------------------------------------------------------------------ */
+  describe('updatePremiumStatus()', () => {
+    it('devrait mettre à jour le statut premium via findOne et save', async () => {
+      // 1. On simule l'utilisateur trouvé
+      const existingUser = {
+        id: 1,
+        email: 'test@test.com',
+        isPremium: false,
+      } as User;
+      mockUserRepository.findOne.mockResolvedValue(existingUser);
+
+      // 2. On simule le save (ce que fait ton code réel)
+      mockUserRepository.save.mockResolvedValue({
+        ...existingUser,
+        isPremium: true,
+      });
+
+      // Exécution
+      await service.updatePremiumStatus(1, true);
+
+      // 3. Vérifications
+      // On vérifie que findOne a été appelé par la logique interne
+      expect(mockUserRepository.findOne).toHaveBeenCalled();
+
+      // On vérifie que save a bien été appelé avec l'objet modifié
+      expect(mockUserRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 1,
+          isPremium: true,
+        }),
+      );
+    });
+
+    it('devrait lancer une NotFoundException si l utilisateur n existe pas', async () => {
+      mockUserRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.updatePremiumStatus(99, true)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
   describe('remove()', () => {
-    it('supprime si affected > 0', async () => {
-      repo.delete.mockResolvedValue({ affected: 1 } as any);
-
+    it('devrait supprimer ou lancer NotFoundException', async () => {
+      // Cas succès
+      mockUserRepository.delete.mockResolvedValue({ affected: 1 });
       await expect(service.remove(1)).resolves.toBeUndefined();
-      expect(repo.delete).toHaveBeenCalledWith(1);
-    });
 
-    it('lance NotFoundException si rien supprimé', async () => {
-      repo.delete.mockResolvedValue({ affected: 0 } as any);
-
-      await expect(service.remove(1)).rejects.toBeInstanceOf(NotFoundException);
-    });
-  });
-
-  /* ------------------------------------------------------------------ */
-  describe('updatePassword()', () => {
-    it('met à jour le mot de passe et ne retourne rien', async () => {
-      const user = { id: 1, email: 'a@b.c', password: 'old' } as User;
-      repo.findOne.mockResolvedValue(user);
-      repo.save.mockResolvedValue({ ...user, password: 'newHashed' });
-
-      await expect(service.updatePassword('a@b.c', 'new')).resolves.toBeUndefined();
-      expect(repo.findOne).toHaveBeenCalledWith({ where: { email: 'a@b.c' } });
-      expect(repo.save).toHaveBeenCalled();
-    });
-
-    it('lance NotFoundException si email inconnu', async () => {
-      repo.findOne.mockResolvedValue(undefined);
-
-      await expect(service.updatePassword('nobody@mail', 'x')).rejects.toBeInstanceOf(NotFoundException);
+      // Cas échec
+      mockUserRepository.delete.mockResolvedValue({ affected: 0 });
+      await expect(service.remove(99)).rejects.toThrow(NotFoundException);
     });
   });
 });

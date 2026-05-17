@@ -14,36 +14,84 @@ export class ExportService {
     private readonly userRepository: Repository<User>,
   ) {}
 
+  // --- LOGIQUE D'IMPORTATION (Nouveau) ---
+  async importFromCsv(userId: number, fileContent: string): Promise<any> {
+    const lines = fileContent.split('\n');
+    const detectedSubscriptions = [];
+    const expensesToSave = [];
+
+    // On boucle sur les lignes (on saute l'en-tête à i=0 si besoin)
+    for (let i = 1; i < lines.length; i++) {
+      const columns = lines[i].split(';');
+      if (columns.length < 3) continue;
+
+      const [dateRaw, labelRaw, amountRaw] = columns;
+
+      // Nettoyage du montant et du libellé
+      const amount = parseFloat(amountRaw.replace(',', '.').trim());
+      let label = labelRaw.replace(/"/g, '').trim();
+
+      // Détection automatique d'abonnement (Netflix, etc.)
+      let isRecurring = false;
+      const upperLabel = label.toUpperCase();
+
+      if (upperLabel.includes('NETFLIX')) {
+        label = 'Netflix';
+        isRecurring = true;
+      } else if (upperLabel.includes('SPOTIFY')) {
+        label = 'Spotify';
+        isRecurring = true;
+      }
+
+      // Conversion de la date JJ/MM/AAAA vers Date JS
+      const parts = dateRaw.split('/');
+      const date = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+
+      if (isNaN(date.getTime())) continue;
+
+      const expense = this.expenseRepository.create({
+        user: { id: userId },
+        label: label,
+        amount: Math.abs(amount),
+        date: date,
+        type: amount < 0 ? 'expense' : 'income',
+        isRecurring: isRecurring,
+      });
+
+      if (isRecurring) {
+        detectedSubscriptions.push({
+          name: label,
+          day: date.getDate(),
+          amount: Math.abs(amount),
+        });
+      }
+
+      expensesToSave.push(expense);
+    }
+
+    // Sauvegarde en masse pour la performance
+    await this.expenseRepository.save(expensesToSave);
+
+    return {
+      success: true,
+      count: expensesToSave.length,
+      subscriptions: detectedSubscriptions,
+    };
+  }
+
+  // --- TON CODE D'EXPORT (Conservé tel quel) ---
   async exportToCsv(userId: number, filters: ExportQueryDto): Promise<string> {
-    // Récupère l'utilisateur depuis le JWT (pas de param contrôlé par le client → pas d'IDOR)
     const user = await this.userRepository.findOne({ where: { id: userId } });
     const fullName = user ? `${user.firstName} ${user.lastName}` : 'Inconnu';
 
-    const where: FindOptionsWhere<Expense> = {
-      user: { id: userId },
-    };
+    const where: FindOptionsWhere<Expense> = { user: { id: userId } };
 
-    if (filters.type) {
-      where.type = filters.type;
-    }
-
-    if (filters.categoryId) {
-      where.category = { id: filters.categoryId };
-    }
+    if (filters.type) where.type = filters.type;
+    if (filters.categoryId) where.category = { id: filters.categoryId };
 
     if (filters.dateFrom && filters.dateTo) {
       where.date = Between(
         new Date(filters.dateFrom),
-        new Date(filters.dateTo),
-      ) as any;
-    } else if (filters.dateFrom) {
-      where.date = Between(
-        new Date(filters.dateFrom),
-        new Date('9999-12-31'),
-      ) as any;
-    } else if (filters.dateTo) {
-      where.date = Between(
-        new Date('1970-01-01'),
         new Date(filters.dateTo),
       ) as any;
     }
@@ -54,10 +102,7 @@ export class ExportService {
       order: { date: 'DESC' },
     });
 
-    // ✅ BOM UTF-8 pour Excel
     const BOM = '\uFEFF';
-
-    // Lignes d'info utilisateur en haut du fichier
     const userLine = `"Exporté par : ${fullName}"`;
     const dateLine = `"Date d'export : ${new Date().toLocaleDateString('fr-FR')}"`;
 
@@ -78,10 +123,10 @@ export class ExportService {
       return [date, label, type, amount, category].join(';');
     });
 
+    // ... calcul des totaux et retour (ta logique actuelle)
     const totalDepenses = expenses
       .filter((e) => e.type === 'expense')
       .reduce((sum, e) => sum + Math.abs(Number(e.amount)), 0);
-
     const totalRevenus = expenses
       .filter((e) => e.type === 'income')
       .reduce((sum, e) => sum + Math.abs(Number(e.amount)), 0);
@@ -93,7 +138,6 @@ export class ExportService {
       totalDepenses.toFixed(2).replace('.', ','),
       '',
     ].join(';');
-
     const summaryIncome = [
       '',
       '"Total revenus"',

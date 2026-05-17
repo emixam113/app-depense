@@ -1,100 +1,84 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { MailController } from './mail.controller';
 import { MailService } from './mail.service';
-import { UserService } from '../user/user.service';
-import { BadRequestException } from '@nestjs/common';
-import { User } from '../user/entity/user.entity';
+import { MailerService } from '@nestjs-modules/mailer';
 
-describe('MailController', () => {
-  let controller: MailController;
-  let mailService: jest.Mocked<MailService>;
-  let userService: jest.Mocked<UserService>;
+describe('MailService', () => {
+  let mailService: MailService;
+  let mailerService: MailerService;
+
+  const mockMailerService = {
+    sendMail: jest.fn(),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      controllers: [MailController],
       providers: [
+        MailService,
         {
-          provide: MailService,
-          useValue: {
-            sendTestEmail: jest.fn(),
-            sendPasswordResetEmail: jest.fn(),
-          },
-        },
-        {
-          provide: UserService,
-          useValue: {
-            findByEmail: jest.fn(),
-          },
+          provide: MailerService,
+          useValue: mockMailerService,
         },
       ],
     }).compile();
 
-    controller = module.get<MailController>(MailController);
-    mailService = module.get(MailService);
-    userService = module.get(UserService);
+    mailService = module.get<MailService>(MailService);
+    mailerService = module.get<MailerService>(MailerService);
+    jest.clearAllMocks();
   });
 
-  afterEach(() => jest.clearAllMocks());
-
-  describe('sendTestEmail', () => {
-    it('envoie un email de test avec succès', async () => {
-      mailService.sendTestEmail.mockResolvedValue({
-        success: true,
-        message: 'Email envoyé',
-      } as any); // forçons le typage ici
-
-      const result = await controller.sendTestEmail('test@example.com');
-
-      expect(mailService.sendTestEmail).toHaveBeenCalledWith('test@example.com');
-      expect(result).toEqual({ success: true, message: 'Email envoyé' });
-    });
-
-    it('rejette si aucun email n’est fourni', async () => {
-      await expect(controller.sendTestEmail('')).rejects.toThrow(BadRequestException);
-    });
+  it('should be defined', () => {
+    expect(mailService).toBeDefined();
   });
 
-  describe('sendResetPassword', () => {
-    it('envoie un email de réinitialisation avec succès', async () => {
-      const mockUser: User = {
-        id: 1,
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'test@example.com',
-        password: 'hashed',
-        birthDate: new Date(),
-        expenses: [],
-        methods: [],
-        resetTokens: [],
-      };
+  describe('sendPasswordResetEmail', () => {
+    it('should send reset password email with correct data', async () => {
+      mockMailerService.sendMail.mockResolvedValue(true);
 
-      userService.findByEmail.mockResolvedValue(mockUser);
-      mailService.sendPasswordResetEmail.mockResolvedValue(undefined); // correspond à Promise<void>
-
-      const result = await controller.sendResetPassword('test@example.com');
-
-      expect(userService.findByEmail).toHaveBeenCalledWith('test@example.com');
-      expect(mailService.sendPasswordResetEmail).toHaveBeenCalledWith(
-        mockUser.email,
-        'generated-token-here',
-        mockUser.firstName,
+      // On teste avec email, code (3 chiffres) et prénom
+      await mailService.sendPasswordResetEmail(
+        'user@example.com',
+        '123',
+        'Alice',
       );
-      expect(result).toEqual({
-        message: 'Email de réinitialisation envoyé',
-        tokenSent: 'generated-token-here',
+
+      expect(mailerService.sendMail).toHaveBeenCalledWith({
+        to: 'user@example.com',
+        subject: 'Réinitialisation de votre mot de passe',
+        template: 'reset-password',
+        context: expect.objectContaining({
+          email: 'user@example.com',
+          code: '123',
+          firstName: 'Alice',
+          appName: 'Suivi des Dépenses',
+        }),
       });
     });
 
-    it('rejette si aucun email n’est fourni', async () => {
-      await expect(controller.sendResetPassword('')).rejects.toThrow(BadRequestException);
-    });
+    it('should throw an error if sending fails', async () => {
+      mockMailerService.sendMail.mockRejectedValue(new Error('SMTP Error'));
 
-    it('rejette si l’utilisateur est introuvable', async () => {
-      userService.findByEmail.mockResolvedValue(null);
-      await expect(controller.sendResetPassword('unknown@example.com')).rejects.toThrow(
-        'User not found',
-      );
+      await expect(
+        mailService.sendPasswordResetEmail('user@example.com', '123', 'Alice'),
+      ).rejects.toThrow('SMTP Error');
+    });
+  });
+
+  describe('sendTestEmail', () => {
+    it('should send test email and return success response', async () => {
+      mockMailerService.sendMail.mockResolvedValue(true);
+
+      await mailService.sendTestEmail('test@example.com');
+
+      expect(mailerService.sendMail).toHaveBeenCalledWith({
+        to: 'test@example.com',
+        subject: "Test d'envoi d'email",
+        template: 'test',
+        context: expect.objectContaining({
+          email: 'test@example.com',
+          code: '123',
+          firstName: 'Test',
+        }),
+      });
     });
   });
 });

@@ -17,24 +17,39 @@ export class UserService {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  // Créer un nouvel utilisateur
+  // ✅ RÉCUPÉRATION DU PROFIL AVEC CALCUL DU SOLDE
+  async getProfileWithBalance(id: number): Promise<any> {
+    const user = await this.userRepository.findOne({
+      where: { id },
+      relations: ['expenses'], // Charge les dépenses liées
+    });
+
+    if (!user) throw new NotFoundException(`Utilisateur non trouvé`);
+
+    // Comme ton entité Expense gère déjà les signes (+/-), on fait juste la somme
+    const totalBalance =
+      user.expenses?.reduce(
+        (acc, expense) => acc + Number(expense.amount),
+        0,
+      ) || 0;
+
+    // 🛡️ Sécurité : On retire le password avant de renvoyer
+    const { password, ...userWithoutPassword } = user;
+
+    return {
+      ...userWithoutPassword,
+      totalBalance,
+    };
+  }
+
   async create(createUserDto: CreateUserDto): Promise<User> {
     const { email, password, birthDate, ...rest } = createUserDto;
-
-    // Vérifie si l'email existe déjà
     const existingUser = await this.userRepository.findOne({
       where: { email },
     });
-    if (existingUser) {
-      throw new BadRequestException(
-        'Un utilisateur avec cet email existe déjà.',
-      );
-    }
+    if (existingUser) throw new BadRequestException('Email déjà utilisé.');
 
-    // Hash du mot de passe
     const hashedPassword = await argon2.hash(password);
-
-    // Création de l'utilisateur
     const newUser = this.userRepository.create({
       ...rest,
       email,
@@ -44,21 +59,16 @@ export class UserService {
     return this.userRepository.save(newUser);
   }
 
-  // Récupérer tous les utilisateurs
   async findAll(): Promise<User[]> {
     return this.userRepository.find();
   }
 
-  // Récupérer un utilisateur par ID
   async findOne(id: number): Promise<User> {
     const user = await this.userRepository.findOne({ where: { id } });
-    if (!user) {
-      throw new NotFoundException(`Utilisateur avec l'ID ${id} non trouvé`);
-    }
+    if (!user) throw new NotFoundException(`Utilisateur non trouvé`);
     return user;
   }
 
-  // 🔹 Récupérer un utilisateur par email
   async findByEmail(email: string): Promise<User | null> {
     return this.userRepository
       .createQueryBuilder('user')
@@ -67,41 +77,29 @@ export class UserService {
       .getOne();
   }
 
-  // 🔹 Mettre à jour un utilisateur
   async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
     const user = await this.findOne(id);
-
-    // Si on modifie le mot de passe → on le rehash
     if (updateUserDto.password) {
       updateUserDto.password = await argon2.hash(updateUserDto.password);
     }
-
     Object.assign(user, updateUserDto);
     return this.userRepository.save(user);
   }
 
-  // 🔹 Mettre à jour uniquement le mot de passe
   async updatePassword(userId: string, hashedPassword: string): Promise<void> {
-    // Utilisation de findOneBy pour éviter les erreurs de typage TS2345
     const user = await this.userRepository.findOneBy({ id: parseInt(userId) });
     if (!user) throw new NotFoundException('Utilisateur non trouvé');
-
     user.password = hashedPassword;
     await this.userRepository.save(user);
   }
 
-  // 🔹 Supprimer un utilisateur
   async remove(id: number): Promise<void> {
     const result = await this.userRepository.delete(id);
-    if (result.affected === 0) {
-      throw new NotFoundException(`Utilisateur avec l'ID ${id} non trouvé`);
-    }
+    if (result.affected === 0) throw new NotFoundException(`Non trouvé`);
   }
 
-  // 🔹 Met à jour le statut Premium
   async updatePremiumStatus(id: number, isPremium: boolean): Promise<void> {
     const user = await this.findOne(id);
-
     user.isPremium = isPremium;
     await this.userRepository.save(user);
   }

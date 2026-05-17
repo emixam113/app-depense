@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Category } from '../category/entity/category.entity';
@@ -13,58 +17,108 @@ export class CategoryService {
     private readonly categoryRepository: Repository<Category>,
   ) {}
 
+  /**
+   * Création sécurisée avec limite pour non-premium
+   */
+  async create(dto: CreateCategoryDto, user: User): Promise<Category> {
+    // 1. Compter les catégories possédées par l'utilisateur (on exclut les globales)
+    const userCategoriesCount = await this.categoryRepository.count({
+      where: { user: { id: user.id }, isDefault: false },
+    });
 
-  async create(dto: CreateCategoryDto, user?: User): Promise<Category> {
+    // 2. Vérifier le statut Premium (bloque à 5 si non-payant)
+    if (!user.isPremium && userCategoriesCount >= 5) {
+      throw new BadRequestException(
+        "Limite de 5 catégories atteinte. Passez à l'offre Premium pour en créer de nouvelles.",
+      );
+    }
+
     const category = this.categoryRepository.create({
       name: dto.name,
       color: dto.color,
-      isDefault: !user, // si pas d'utilisateur -> catégorie globale
-      user: user ?? null,
+      isDefault: false, // Une catégorie créée par un user n'est jamais globale par défaut
+      user: user,
     });
+
     return this.categoryRepository.save(category);
   }
 
-
+  /**
+   * Récupère les catégories par défaut + celles de l'utilisateur
+   */
   async findAllForUser(user: User): Promise<Category[]> {
     return this.categoryRepository.find({
-      where: [
-        { isDefault: true },
-        { user: { id: user.id } },
-      ],      order: { name: 'ASC' },
-    });
-  }
-
-  async findAll(): Promise<Category[]> {
-    return this.categoryRepository.find({
+      where: [{ isDefault: true }, { user: { id: user.id } }],
       order: { name: 'ASC' },
     });
   }
 
+  /**
+   * Récupère une catégorie spécifique (Sécurité IDOR)
+   */
+  async findOne(id: number, user: User): Promise<Category> {
+    const category = await this.categoryRepository.findOne({
+      where: [
+        { id, user: { id: user.id } }, // Doit lui appartenir
+        { id, isDefault: true }, // OU être globale
+      ],
+    });
 
-  async findOne(id: number): Promise<Category> {
-    const category = await this.categoryRepository.findOne({ where: { id } });
     if (!category) {
-      throw new NotFoundException(`Category with id ${id} not found`);
+      throw new NotFoundException(`Catégorie introuvable ou accès refusé`);
     }
     return category;
   }
 
-  async update(id: number, dto: UpdateCategoryDto): Promise<Category> {
-    const category = await this.categoryRepository.preload({
-      id,
+  /**
+   * Mise à jour sécurisée (Sécurité IDOR)
+   */
+  async update(
+    id: number,
+    dto: UpdateCategoryDto,
+    user: User,
+  ): Promise<Category> {
+    // On vérifie que la catégorie appartient bien à l'utilisateur
+    const category = await this.categoryRepository.findOne({
+      where: { id, user: { id: user.id } },
+    });
+
+    if (!category) {
+      throw new NotFoundException(
+        `Vous n'avez pas l'autorisation de modifier cette catégorie`,
+      );
+    }
+
+    // On applique les modifications du DTO sur l'entité existante
+    const updatedCategory = await this.categoryRepository.preload({
+      id: category.id,
       ...dto,
     });
-    if (!category) {
-      throw new NotFoundException(`Category with id ${id} not found`);
-    }
-    return this.categoryRepository.save(category);
+
+    return this.categoryRepository.save(updatedCategory);
   }
 
-  async remove(id: number): Promise<void> {
-    const category = await this.categoryRepository.findOneBy({ id });
-    if (!category) {
-      throw new NotFoundException(`Category with id ${id} not found`);
+  /**
+   * Suppression sécurisée (Sécurité IDOR)
+   */
+  async remove(id: number, user: User): Promise<void> {
+    // La suppression ne fonctionne que si l'ID correspond ET appartient à l'utilisateur
+    const result = await this.categoryRepository.delete({
+      id,
+      user: { id: user.id },
+    });
+
+    if (result.affected === 0) {
+      throw new NotFoundException(
+        `Suppression impossible : catégorie introuvable ou non autorisée`,
+      );
     }
-    await this.categoryRepository.remove(category);
+  }
+
+  // Gardé pour l'admin si nécessaire, mais attention à l'usage
+  async findAll(mockUser: User): Promise<Category[]> {
+    return this.categoryRepository.find({
+      order: { name: 'ASC' },
+    });
   }
 }

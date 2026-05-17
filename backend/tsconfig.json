@@ -19,11 +19,9 @@
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "types": ["node", "jest", "multer"]
   },
-  "include": [
-    "src/**/*.ts",
-    "src/migration.config.ts"
-  ],
+  "include": ["src/**/*.ts", "src/migration.config.ts"],
   "exclude": ["node_modules"]
 }

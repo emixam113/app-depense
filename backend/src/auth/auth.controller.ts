@@ -15,11 +15,11 @@ import { Request } from 'express';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  //Connexion
+  /**
+   * CONNEXION
+   */
   @Post('login')
-  async login(
-    @Body() body: { email: string; password: string },
-  ): Promise<any> {
+  async login(@Body() body: { email: string; password: string }): Promise<any> {
     const { email, password } = body;
     if (!email || !password) {
       throw new BadRequestException('Email et mot de passe requis.');
@@ -27,7 +27,9 @@ export class AuthController {
     return this.authService.login(email, password);
   }
 
-  // Inscription
+  /**
+   * INSCRIPTION
+   */
   @Post('signup')
   async signup(
     @Body()
@@ -40,10 +42,29 @@ export class AuthController {
       birthDate: string;
     },
   ) {
+    // La validation de la correspondance des mots de passe est gérée dans le service
     return this.authService.signup(body);
   }
 
-  //Demande de réinitialisation du mot de passe
+  /**
+   * RÉCUPÉRATION DU PROFIL (PROTECTION JWT)
+   * ✅ CORRIGÉ : Récupère les données réelles en base de données pour inclure le solde
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('profile')
+  async getProfile(@Req() req: any) {
+    // req.user est rempli par le JwtStrategy après validation du token.
+    // Il contient généralement { sub: id, email: string }
+    const userId = req.user.sub || req.user.id;
+
+    // 🛡️ Sécurité & Données : On appelle le service pour obtenir le profil complet
+    // avec le solde calculé et sans le mot de passe
+    return this.authService.getProfile(userId);
+  }
+
+  /**
+   * DEMANDE DE RÉINITIALISATION DE MOT DE PASSE
+   */
   @Post('forgot-password')
   async forgotPassword(@Body() body: { email: string }) {
     const { email } = body;
@@ -53,11 +74,17 @@ export class AuthController {
     return this.authService.forgotPassword(email);
   }
 
-  //Réinitialisation du mot de passe avec le code reçu
+  /**
+   * RÉINITIALISATION DU MOT DE PASSE AVEC CODE
+   */
   @Post('reset-password')
   async resetPassword(
     @Body()
-    body: { email: string; code: string; newPassword: string },
+    body: {
+      email: string;
+      code: string;
+      newPassword: string;
+    },
   ) {
     const { email, code, newPassword } = body;
     if (!email || !code || !newPassword) {
@@ -66,12 +93,5 @@ export class AuthController {
       );
     }
     return this.authService.resetPassword(email, code, newPassword);
-  }
-
-  //Récupération du profil utilisateur (protégée par JWT)
-  @UseGuards(JwtAuthGuard)
-  @Get('profile')
-  getProfile(@Req() req: Request) {
-    return req.user; //Le payload JWT contient { sub, email }
   }
 }

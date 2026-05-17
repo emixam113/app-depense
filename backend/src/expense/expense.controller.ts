@@ -30,11 +30,15 @@ export class ExpenseController {
     return this.expenseService.findOne(created.id, req.user.id);
   }
 
-  // ✅ CETTE ROUTE ÉTAIT CELLE QUI MANQUAIT (404)
   @Get('me') // On définit explicitement la route /me demandée par le mobile
   findAll(@Request() req) {
     // On ne récupère que les dépenses de l'utilisateur extrait du Token JWT
     return this.expenseService.findByUser(req.user.id);
+  }
+
+  @Get('comparison')
+  async getComparison(@Request() req) {
+    return this.expenseService.getComparisonStats(req.user.id);
   }
 
   @Get(':id')
