@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { IsString, IsNotEmpty } from 'class-validator';
 import { JwtAuthGuard } from '../auth/JWT/jwt-auth.guard';
-import { NotificationService } from './Notification.service';
+import { NotificationService } from './notification.service';
 
 
 export class RegisterTokenDto {
