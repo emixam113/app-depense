@@ -10,7 +10,7 @@ import {
 import { Request } from 'express';
 import { UserService } from './user.service';
 import { User } from './entity/user.entity';
-import { UpdateUserDto } from '../user/dto/update-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../auth/JWT/jwt-auth.guard';
 
 @Controller('users')
