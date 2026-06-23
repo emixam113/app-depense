@@ -3,7 +3,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PushService } from './push.service';
 import { NotificationController } from './notification.controller';
-import { NotificationService } from './Notification.service';
+import { NotificationService } from './notification.service';
 import { User } from '../user/entity/user.entity';
 
 @Module({
