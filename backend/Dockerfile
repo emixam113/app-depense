@@ -1,20 +1,17 @@
-# Utiliser une image officielle Node.js comme environnement de base
-FROM node:18-alpine
-
-# Définir le répertoire de travail dans le conteneur
+# 1. Étape de build
+FROM node:20-alpine AS builder
 WORKDIR /app
-
-# Copier les fichiers de dépendances en premier pour optimiser le cache Docker
 COPY package*.json ./
-
-# Installer les dépendances
 RUN npm install
-
-# Copier le reste du code dans le conteneur
 COPY . .
+RUN npm run build
 
-# Exposer le port utilisé par l'application
+# 2. Étape d'exécution (plus légère)
+FROM node:20-alpine
+WORKDIR /app
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+
 EXPOSE 3000
-
-# Démarrer l'application
-CMD ["npm", "run", "start"]
+CMD ["node", "dist/main"]

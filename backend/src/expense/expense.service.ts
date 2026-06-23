@@ -81,7 +81,7 @@ export class ExpenseService {
 
   /**
    * Récupère les statistiques comparatives (Mois actuel vs Mois précédent)
-   * Nécessaire pour les notifications et les graphiques de tendance
+   * Nom de méthode synchronisé avec le contrôleur
    */
   async getComparisonStats(userId: number) {
     const now = new Date();
@@ -106,12 +106,16 @@ export class ExpenseService {
       59,
     );
 
+    // Correction : Recherche par la relation user id
     const [currentExpenses, prevExpenses] = await Promise.all([
       this.expenseRepository.find({
-        where: { userId, date: Between(startOfCurrent, endOfCurrent) },
+        where: {
+          user: { id: userId },
+          date: Between(startOfCurrent, endOfCurrent),
+        },
       }),
       this.expenseRepository.find({
-        where: { userId, date: Between(startOfPrev, endOfPrev) },
+        where: { user: { id: userId }, date: Between(startOfPrev, endOfPrev) },
       }),
     ]);
 
@@ -119,6 +123,7 @@ export class ExpenseService {
       return list.reduce(
         (acc, curr) => {
           const amount = Math.abs(Number(curr.amount));
+          // Correction : Utilisation des minuscules pour correspondre à ton type d'entité
           if (curr.type === 'expense') acc.totalExpense += amount;
           else acc.totalIncome += amount;
           return acc;
@@ -130,8 +135,9 @@ export class ExpenseService {
     const current = calculateTotals(currentExpenses);
     const prev = calculateTotals(prevExpenses);
 
+    // Correction UX : Évite le faux 100% si le mois précédent est vide
     const calculateVariation = (curr: number, old: number) => {
-      if (old === 0) return curr > 0 ? 100 : 0;
+      if (old === 0) return 0;
       return ((curr - old) / old) * 100;
     };
 
@@ -148,6 +154,9 @@ export class ExpenseService {
     };
   }
 
+  /**
+   * Nom de méthode synchronisé avec le contrôleur (findByUser)
+   */
   async findByUser(userId: number): Promise<Expense[]> {
     return await this.expenseRepository.find({
       where: { user: { id: userId } },
