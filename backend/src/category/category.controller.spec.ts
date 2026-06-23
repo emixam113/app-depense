@@ -2,8 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { CategoryController } from './category.controller';
 import { CategoryService } from './category.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { CreateCategoryDto } from './DTO/create-category.dto';
-import { UpdateCategoryDto } from './DTO/update-category.dto';
+import { CreateCategoryDto } from './dto/create-category.dto';
+import { UpdateCategoryDto } from './dto/update-category.dto';
 import { User } from '../user/entity/user.entity';
 
 describe('CategoryController (Unit)', () => {

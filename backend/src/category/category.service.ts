@@ -6,8 +6,8 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Category } from '../category/entity/category.entity';
-import { CreateCategoryDto } from './DTO/create-category.dto';
-import { UpdateCategoryDto } from './DTO/update-category.dto';
+import { CreateCategoryDto } from './dto/create-category.dto';
+import { UpdateCategoryDto } from './dto/update-category.dto';
 import { User } from '../user/entity/user.entity';
 
 @Injectable()
@@ -89,7 +89,7 @@ export class CategoryService {
       );
     }
 
-    // On applique les modifications du DTO sur l'entité existante
+    // On applique les modifications du dto sur l'entité existante
     const updatedCategory = await this.categoryRepository.preload({
       id: category.id,
       ...dto,

@@ -13,8 +13,8 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { CategoryService } from './category.service';
-import { CreateCategoryDto } from './DTO/create-category.dto';
-import { UpdateCategoryDto } from './DTO/update-category.dto';
+import { CreateCategoryDto } from './dto/create-category.dto';
+import { UpdateCategoryDto } from './dto/update-category.dto';
 import { JwtAuthGuard } from '../auth/JWT/jwt-auth.guard';
 import { User } from '../user/entity/user.entity';
 
@@ -27,7 +27,7 @@ export class CategoryController {
   @Post()
   async create(@Body() dto: CreateCategoryDto, @Req() req: Request) {
     try {
-      // On passe le DTO et l'utilisateur connecté extrait du JWT
+      // On passe le dto et l'utilisateur connecté extrait du JWT
       const newCategory = await this.categoryService.create(
         dto,
         req.user as User,
