@@ -15,4 +15,4 @@ COPY --from=builder /app/dist ./dist
 
 EXPOSE 3000
 
-CMD npx typeorm migration:run -d dist/datasource.js --dataSourceOptions='{"url":"'"$DATABASE_URL"'"}' && node dist/main
+CMD npx ts-node -r dotenv/config ./node_modules/typeorm/cli.js migration:run -d dist/datasource.js && node dist/main
