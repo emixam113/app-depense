@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="AngularSettings">
-    <option name="useTypesFromServer" value="true" />
+    <option name="useServicePoweredTypesDisabledManually" value="true" />
   </component>
   <component name="AutoImportSettings">
     <option name="autoReloadType" value="SELECTIVE" />
@@ -9,7 +9,8 @@
   <component name="ChangeListManager">
     <list default="true" id="17657580-ef20-45ed-803c-ed8e294a8f38" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/data-source.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/data-source.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/backend/Dockerfile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/dataSource.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/dataSource.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -17,7 +18,8 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="134" />
+    <option name="cachedIndexableFilesCount" value="133" />
+    <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -53,6 +55,65 @@
     <option name="ignoreImplicitObjects" value="true" />
     <option name="ignoreSourceCode" value="false" />
   </component>
+  <component name="NextEditCompletionFeaturesState">
+    <decayedCancelled>
+      <entry key="MS100" value="1.000000000015597" />
+      <entry key="MS500" value="1.0078507698218766" />
+      <entry key="S2" value="1.691499821805564" />
+      <entry key="S5" value="3.803020399891948" />
+      <entry key="S10" value="7.552338504151271" />
+      <entry key="S30" value="26.649885331618396" />
+      <entry key="S60" value="44.75119950378003" />
+      <entry key="M2" value="60.166915993561965" />
+      <entry key="M5" value="73.54057434050347" />
+      <entry key="M10" value="81.91916402437572" />
+      <entry key="M15" value="86.8545959214194" />
+      <entry key="M30" value="94.26516939876362" />
+      <entry key="H1" value="99.43103315276475" />
+      <entry key="H2" value="102.51465713766402" />
+      <entry key="H4" value="104.20352029207785" />
+      <entry key="D1" value="105.69278712066925" />
+      <entry key="W1" value="105.95591703046858" />
+    </decayedCancelled>
+    <decayedSelected>
+      <entry key="MS100" value="0.0" />
+      <entry key="MS500" value="0.0" />
+      <entry key="S2" value="0.0" />
+      <entry key="S5" value="0.0" />
+      <entry key="S10" value="0.0" />
+      <entry key="S30" value="0.0" />
+      <entry key="S60" value="0.0" />
+      <entry key="M2" value="0.0" />
+      <entry key="M5" value="0.0" />
+      <entry key="M10" value="0.0" />
+      <entry key="M15" value="0.0" />
+      <entry key="M30" value="0.0" />
+      <entry key="H1" value="0.0" />
+      <entry key="H2" value="0.0" />
+      <entry key="H4" value="0.0" />
+      <entry key="D1" value="0.0" />
+      <entry key="W1" value="0.0" />
+    </decayedSelected>
+    <decayedShown>
+      <entry key="MS100" value="4.666061311241812E-11" />
+      <entry key="MS500" value="0.011013779763698741" />
+      <entry key="S2" value="0.8480118874624496" />
+      <entry key="S5" value="3.1943128514933288" />
+      <entry key="S10" value="7.1156847925906" />
+      <entry key="S30" value="26.385532390108025" />
+      <entry key="S60" value="44.56314709252049" />
+      <entry key="M2" value="60.04677790176238" />
+      <entry key="M5" value="73.48239869343479" />
+      <entry key="M10" value="81.88592177876565" />
+      <entry key="M15" value="86.83054655614379" />
+      <entry key="M30" value="94.25163217295758" />
+      <entry key="H1" value="99.42371709889268" />
+      <entry key="H2" value="102.51083306490172" />
+      <entry key="H4" value="104.2015624463349" />
+      <entry key="D1" value="105.69245405116212" />
+      <entry key="W1" value="105.95586927805392" />
+    </decayedShown>
+  </component>
   <component name="ProblemsViewState">
     <option name="selectedTabId" value="CurrentFile" />
     <option name="showToolbar" value="false" />
@@ -76,11 +137,12 @@
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
     &quot;ToolWindow.Problems View.ShowToolbar&quot;: &quot;false&quot;,
+    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
     &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
     &quot;git-widget-placeholder&quot;: &quot;main&quot;,
     &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
     &quot;javascript.nodejs.core.library.configured.version&quot;: &quot;22.19.0&quot;,
-    &quot;javascript.nodejs.core.library.typings.version&quot;: &quot;22.19.13&quot;,
+    &quot;javascript.nodejs.core.library.typings.version&quot;: &quot;22.19.21&quot;,
     &quot;javascript.preferred.runtime.type.id&quot;: &quot;node&quot;,
     &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
@@ -92,7 +154,7 @@
     &quot;prettierjs.PrettierConfiguration.Package&quot;: &quot;C:\\Users\\Antoi\\Desktop\\app suivie des dépenses et du budget\\backend\\node_modules\\prettier&quot;,
     &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
     &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
-    &quot;ts.external.directory.path&quot;: &quot;C:\\Users\\Antoi\\Desktop\\app suivie des dépenses et du budget\\backend\\node_modules\\typescript\\lib&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;C:\\Users\\Antoi\\Desktop\\app suivie des dépenses et du budget\\frontend\\node_modules\\typescript\\lib&quot;,
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   },
   &quot;keyToStringList&quot;: {
@@ -111,7 +173,7 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-d6986cc7102b-9b0f141eb926-JavaScript-WS-253.33813.27" />
+        <option value="bundled-js-predefined-d6986cc7102b-31caf2ab9e3c-JavaScript-WS-261.26222.58" />
       </set>
     </attachedChunks>
   </component>
@@ -194,6 +256,17 @@
       <workItem from="1782226228252" duration="100000" />
       <workItem from="1782229460484" duration="240000" />
       <workItem from="1782229788165" duration="191000" />
+      <workItem from="1782230084619" duration="4995000" />
+      <workItem from="1782287498784" duration="4223000" />
+      <workItem from="1782376558069" duration="57000" />
+      <workItem from="1782721119351" duration="225000" />
+      <workItem from="1782721385243" duration="10000" />
+      <workItem from="1782722894336" duration="4587000" />
+      <workItem from="1783328612448" duration="717000" />
+      <workItem from="1783408852012" duration="966000" />
+      <workItem from="1783415629752" duration="7853000" />
+      <workItem from="1783496419808" duration="1263000" />
+      <workItem from="1783497787089" duration="1369000" />
     </task>
     <servers />
   </component>

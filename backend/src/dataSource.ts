@@ -1,7 +1,9 @@
-import 'dotenv/config';
+import * as dotenv from 'dotenv';
 import { DataSource } from 'typeorm';
 import { join } from 'path';
+dotenv.config();
 
+console.log('DEBUG - DATABASE_URL est :', process.env.DATABASE_URL);
 export const AppDataSource = new DataSource({
   type: 'postgres',
   host: process.env.DB_HOST || 'localhost',
@@ -13,4 +15,5 @@ export const AppDataSource = new DataSource({
   migrations: [join(__dirname, 'migrations', '*.{ts,js}')],
   synchronize: false,
   logging: true,
+
 });
