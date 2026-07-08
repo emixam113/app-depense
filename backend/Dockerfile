@@ -15,4 +15,4 @@ COPY --from=builder /app/dist ./dist
 
 EXPOSE 3000
 
-CMD npx typeorm migration:run -d dist/dataSource.js && node dist/main
+CMD npx ts-node -r dotenv/config ./node_modules/typeorm/cli.js migration:run -d dist/dataSource.js && node dist/main
