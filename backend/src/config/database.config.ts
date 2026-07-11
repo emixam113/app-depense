@@ -22,7 +22,7 @@ export const databaseConfig = (
     port: dbUrl ? undefined : parseInt(configService.get<string>('DATABASE_PORT', '5432'), 10),
     username: dbUrl ? undefined : configService.get<string>('DATABASE_USERNAME', 'postgres'),
     password: dbUrl ? undefined : configService.get<string>('DATABASE_PASSWORD', 'athao03200'),
-    database: dbUrl ? undefined : configService.get<string>('DATABASE_NAME', 'expense_db'),
+    database: dbUrl ? undefined : configService.get<string>('DATABASE_NAME', 'fineo_dev_empty'),
 
     entities: [User, ResetToken, Expense, Method, Category],
     migrations: [join(__dirname, '..', 'migrations', '*.{ts,js}')],
