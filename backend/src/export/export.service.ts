@@ -4,6 +4,7 @@ import { Repository, Between, FindOptionsWhere } from 'typeorm';
 import { Expense } from '../expense/entity/expense.entity';
 import { User } from '../user/entity/user.entity';
 import { ExportQueryDto } from './dto/export-query.dto';
+import {join} from "path";
 
 @Injectable()
 export class ExportService {
@@ -14,72 +15,111 @@ export class ExportService {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  // --- LOGIQUE D'IMPORTATION (Nouveau) ---
   async importFromCsv(userId: number, fileContent: string): Promise<any> {
-    const lines = fileContent.split('\n');
-    const detectedSubscriptions = [];
-    const expensesToSave = [];
-
-    // On boucle sur les lignes (on saute l'en-tête à i=0 si besoin)
-    for (let i = 1; i < lines.length; i++) {
-      const columns = lines[i].split(';');
-      if (columns.length < 3) continue;
-
-      const [dateRaw, labelRaw, amountRaw] = columns;
-
-      // Nettoyage du montant et du libellé
-      const amount = parseFloat(amountRaw.replace(',', '.').trim());
-      let label = labelRaw.replace(/"/g, '').trim();
-
-      // Détection automatique d'abonnement (Netflix, etc.)
-      let isRecurring = false;
-      const upperLabel = label.toUpperCase();
-
-      if (upperLabel.includes('NETFLIX')) {
-        label = 'Netflix';
-        isRecurring = true;
-      } else if (upperLabel.includes('SPOTIFY')) {
-        label = 'Spotify';
-        isRecurring = true;
-      }
-
-      // Conversion de la date JJ/MM/AAAA vers Date JS
-      const parts = dateRaw.split('/');
-      const date = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
-
-      if (isNaN(date.getTime())) continue;
-
-      const expense = this.expenseRepository.create({
-        user: { id: userId },
-        label: label,
-        amount: Math.abs(amount),
-        date: date,
-        type: amount < 0 ? 'expense' : 'income',
-        isRecurring: isRecurring,
-      });
-
-      if (isRecurring) {
-        detectedSubscriptions.push({
-          name: label,
-          day: date.getDate(),
-          amount: Math.abs(amount),
-        });
-      }
-
-      expensesToSave.push(expense);
+    if (!fileContent || typeof fileContent !== 'string') {
+      throw new Error('Le fichier est vide ou invalide');
     }
 
-    // Sauvegarde en masse pour la performance
-    await this.expenseRepository.save(expensesToSave);
+    const lines = fileContent
+      .split(/\r?\n/)
+      .filter((line) => line.trim() !== '');
+
+    if (lines.length < 2) {
+      throw new Error('Le fichier CSV ne contient aucune donnée à analyser');
+    }
+
+    if (lines.length > 5001) {
+      throw new Error('Le fichier CSV dépasse la limite de 5000 lignes');
+    }
+
+    const headerLine = lines[0];
+    const separator = headerLine.includes(';') ? ';' : ',';
+    const dataLines = lines.slice(1);
+
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new Error('Utilisateur introuvable');
+    }
+
+    const imported: Expense[] = [];
+    const errors: string[] = [];
+
+    for (let i = 0; i < dataLines.length; i++) {
+      const cols = dataLines[i]
+        .split(separator)
+        .map((c) => c.replace(/^"|"$/g, '').trim());
+
+      // Colonnes attendues : Date, Libellé, Type, Montant, Catégorie
+      if (cols.length < 4) {
+        errors.push(`Ligne ${i + 2} ignorée : colonnes insuffisantes`);
+        continue;
+      }
+
+      const [dateStr, label, typeStr, amountStr] = cols;
+
+      // Validation date
+      const parts = dateStr.split('/');
+      if (parts.length !== 3) {
+        errors.push(`Ligne ${i + 2} ignorée : date invalide (${dateStr})`);
+        continue;
+      }
+      const date = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+      if (isNaN(date.getTime())) {
+        errors.push(`Ligne ${i + 2} ignorée : date non parsable (${dateStr})`);
+        continue;
+      }
+
+      // Validation type
+      const type =
+        typeStr === 'Dépense'
+          ? 'expense'
+          : typeStr === 'Revenu'
+            ? 'income'
+            : null;
+      if (!type) {
+        errors.push(`Ligne ${i + 2} ignorée : type invalide (${typeStr})`);
+        continue;
+      }
+
+      // Validation montant
+      const amount = parseFloat(amountStr.replace(',', '.'));
+      if (isNaN(amount)) {
+        errors.push(`Ligne ${i + 2} ignorée : montant invalide (${amountStr})`);
+        continue;
+      }
+
+      // Validation label
+      if (!label || label.length > 255) {
+        errors.push(`Ligne ${i + 2} ignorée : libellé vide ou trop long`);
+        continue;
+      }
+
+      const expense = this.expenseRepository.create({
+        date,
+        label,
+        type,
+        amount: type === 'expense' ? -Math.abs(amount) : Math.abs(amount),
+        user,
+      });
+
+      imported.push(expense);
+    }
+
+    if (imported.length === 0) {
+      throw new Error('Aucune ligne valide à importer');
+    }
+
+    await this.expenseRepository.save(imported);
 
     return {
-      success: true,
-      count: expensesToSave.length,
-      subscriptions: detectedSubscriptions,
+      imported: imported.length,
+      errors,
+      message: `${imported.length} transaction(s) importée(s) avec succès`,
     };
   }
 
-  // --- TON CODE D'EXPORT (Conservé tel quel) ---
+
+  // @ts-ignore
   async exportToCsv(userId: number, filters: ExportQueryDto): Promise<string> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     const fullName = user ? `${user.firstName} ${user.lastName}` : 'Inconnu';
@@ -123,7 +163,6 @@ export class ExportService {
       return [date, label, type, amount, category].join(';');
     });
 
-    // ... calcul des totaux et retour (ta logique actuelle)
     const totalDepenses = expenses
       .filter((e) => e.type === 'expense')
       .reduce((sum, e) => sum + Math.abs(Number(e.amount)), 0);
@@ -145,19 +184,19 @@ export class ExportService {
       totalRevenus.toFixed(2).replace('.', ','),
       '',
     ].join(';');
-
     return (
-      BOM +
-      [
-        userLine,
-        dateLine,
-        '',
-        headers,
-        ...rows,
-        '',
-        summary,
-        summaryIncome,
-      ].join('\n')
+        BOM +
+        [
+            userLine,
+            dateLine,
+            '',
+            headers,
+            ...rows,
+            '',
+            summary,
+            summaryIncome,
+
+        ].join('\n')
     );
   }
 }
