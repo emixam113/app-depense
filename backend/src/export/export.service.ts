@@ -4,7 +4,6 @@ import { Repository, Between, FindOptionsWhere } from 'typeorm';
 import { Expense } from '../expense/entity/expense.entity';
 import { User } from '../user/entity/user.entity';
 import { ExportQueryDto } from './dto/export-query.dto';
-import {join} from "path";
 
 interface ParsedTransaction {
   date: Date;
@@ -27,7 +26,6 @@ export class ExportService {
     private readonly userRepository: Repository<User>,
   ) {}
 
-<<<<<<< HEAD
   // =========================================================
   // ==================  UTILITAIRES SÉCURITÉ  ==================
   // =========================================================
@@ -82,14 +80,6 @@ export class ExportService {
   // =========================================================
   // ==================  PARSERS PAR BANQUE  ==================
   // =========================================================
-  // Chaque parser tente de matcher CHAQUE ligne du texte extrait.
-  // Si le format ne correspond pas à la banque, il retourne 0 (ou peu de)
-  // résultats, et un autre parser prendra le dessus.
-  //
-  // ⚠️ Base de départ raisonnable par format connu, non testée sur de vrais
-  // relevés de chaque banque. Si un format ne matche pas en pratique, ajuste
-  // le regex du parser concerné (ou envoie-moi un extrait anonymisé du texte
-  // extrait pour que je l'affine).
 
   private getBankParsers(): BankParser[] {
     return [
@@ -108,7 +98,6 @@ export class ExportService {
           ]),
       },
       {
-        // Souvent DD/MM sans année sur la ligne (année dans l'en-tête du relevé)
         name: 'Société Générale',
         parse: (text) =>
           this.parseGenericLines(text, [
@@ -142,11 +131,6 @@ export class ExportService {
     ];
   }
 
-  /**
-   * Applique une liste de regex candidats ligne par ligne, et retourne les
-   * transactions trouvées avec le PREMIER regex qui obtient des résultats
-   * (utile quand une banque a plusieurs variantes de mise en page).
-   */
   private parseGenericLines(
     text: string,
     patterns: RegExp[],
@@ -189,16 +173,10 @@ export class ExportService {
     return [];
   }
 
-  /**
-   * Convertit les différents formats de date rencontrés (JJ/MM/AAAA, JJ.MM.AAAA,
-   * JJ/MM, AAAA-MM-JJ, "12 Jan 2024") en objet Date.
-   */
   private extractDate(raw: string): Date | null {
     let m = raw.match(/^(\d{2})[./](\d{2})[./](\d{4})$/);
     if (m) return this.parseFrenchDate(m[1], m[2], m[3]);
 
-    // JJ/MM sans année (Société Générale) — année courante par défaut ;
-    // à ajuster si tu récupères l'année réelle du relevé ailleurs dans le PDF.
     m = raw.match(/^(\d{2})\/(\d{2})$/);
     if (m)
       return this.parseFrenchDate(m[1], m[2], String(new Date().getFullYear()));
@@ -230,55 +208,9 @@ export class ExportService {
   }
 
   // =========================================================
-  // ==================  IMPORT CSV  ==================
+  // ==================  IMPORT CSV  =========================
   // =========================================================
 
-  async importFromCsv(userId: number, fileContent: string): Promise<any> {
-    const lines = fileContent.split('\n');
-    const detectedSubscriptions = [];
-    const expensesToSave = [];
-
-    for (let i = 1; i < lines.length; i++) {
-      const columns = lines[i].split(';');
-      if (columns.length < 3) continue;
-
-      const [dateRaw, labelRaw, amountRaw] = columns;
-
-      const amount = parseFloat(amountRaw.replace(',', '.').trim());
-
-      const cleanedLabel = this.sanitizeLabel(
-        labelRaw.replace(/"/g, '').trim(),
-      );
-      const { label, isRecurring } = this.detectRecurring(cleanedLabel);
-
-      const parts = dateRaw.split('/');
-      const date = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
-
-      if (isNaN(date.getTime())) continue;
-      if (isNaN(amount)) continue;
-
-      const expense = this.expenseRepository.create({
-        user: { id: userId },
-        label: label,
-        amount: Math.abs(amount),
-        date: date,
-        type: amount < 0 ? 'expense' : 'income',
-        isRecurring: isRecurring,
-      });
-
-      if (isRecurring) {
-        detectedSubscriptions.push({
-          name: label,
-          day: date.getDate(),
-          amount: Math.abs(amount),
-        });
-      }
-
-      expensesToSave.push(expense);
-    }
-
-    await this.expenseRepository.save(expensesToSave);
-=======
   async importFromCsv(userId: number, fileContent: string): Promise<any> {
     if (!fileContent || typeof fileContent !== 'string') {
       throw new Error('Le fichier est vide ou invalide');
@@ -313,7 +245,6 @@ export class ExportService {
         .split(separator)
         .map((c) => c.replace(/^"|"$/g, '').trim());
 
-      // Colonnes attendues : Date, Libellé, Type, Montant, Catégorie
       if (cols.length < 4) {
         errors.push(`Ligne ${i + 2} ignorée : colonnes insuffisantes`);
         continue;
@@ -321,7 +252,6 @@ export class ExportService {
 
       const [dateStr, label, typeStr, amountStr] = cols;
 
-      // Validation date
       const parts = dateStr.split('/');
       if (parts.length !== 3) {
         errors.push(`Ligne ${i + 2} ignorée : date invalide (${dateStr})`);
@@ -333,7 +263,6 @@ export class ExportService {
         continue;
       }
 
-      // Validation type
       const type =
         typeStr === 'Dépense'
           ? 'expense'
@@ -345,14 +274,12 @@ export class ExportService {
         continue;
       }
 
-      // Validation montant
       const amount = parseFloat(amountStr.replace(',', '.'));
       if (isNaN(amount)) {
         errors.push(`Ligne ${i + 2} ignorée : montant invalide (${amountStr})`);
         continue;
       }
 
-      // Validation label
       if (!label || label.length > 255) {
         errors.push(`Ligne ${i + 2} ignorée : libellé vide ou trop long`);
         continue;
@@ -374,7 +301,6 @@ export class ExportService {
     }
 
     await this.expenseRepository.save(imported);
->>>>>>> 91e5ce6cc9616f18d0a710ae8e0c89037eea1faa
 
     return {
       imported: imported.length,
@@ -383,19 +309,13 @@ export class ExportService {
     };
   }
 
-<<<<<<< HEAD
   // =========================================================
-  // ==================  IMPORT PDF (MULTI-BANQUES)  ==================
+  // ==================  IMPORT PDF (MULTI-BANQUES)  =========
   // =========================================================
 
   async importFromPDF(userId: number, fileBuffer: Buffer): Promise<any> {
-    // API v2 de pdf-parse (breaking change par rapport à la v1) :
-    // on instancie un PDFParse avec le buffer, puis on appelle getText().
-    // Il faut appeler destroy() ensuite pour libérer les ressources internes.
     const { PDFParse } = require('pdf-parse');
-
     const PDF_PARSE_TIMEOUT_MS = 10_000;
-
     const parser = new PDFParse({ data: fileBuffer });
 
     let extractedText: string;
@@ -414,14 +334,10 @@ export class ExportService {
       ]);
       extractedText = result.text;
     } finally {
-      // Toujours libérer les ressources, même si le parsing échoue/timeout.
       await parser.destroy();
     }
 
-    // Détection automatique : on essaie chaque banque et on garde
-    // celle qui a matché le plus de lignes.
     const parsers = this.getBankParsers();
-
     let bestBank = 'Inconnu';
     let bestResults: ParsedTransaction[] = [];
 
@@ -439,7 +355,7 @@ export class ExportService {
         count: 0,
         subscriptions: [],
         message:
-          "Le format de ce relevé n'a pas été reconnu. Formats supportés actuellement : Crédit Mutuel, Crédit Agricole, Société Générale, BNP Paribas, Revolut, Bankin.",
+          "Le format de ce relevé n'a pas été reconnu. Formats supportés : Crédit Mutuel, Crédit Agricole, Société Générale, BNP Paribas, Revolut, Bankin.",
       };
     }
 
@@ -478,17 +394,14 @@ export class ExportService {
       count: expensesToSave.length,
       subscriptions: detectedSubscriptions,
       detectedBankFormat: bestBank,
+      message: `${expensesToSave.length} transactions importées avec succès depuis le PDF (${bestBank}).`,
     };
   }
 
   // =========================================================
-  // ==================  EXPORT CSV  ==================
+  // ==================  EXPORT CSV  =========================
   // =========================================================
 
-=======
-
-  // @ts-ignore
->>>>>>> 91e5ce6cc9616f18d0a710ae8e0c89037eea1faa
   async exportToCsv(userId: number, filters: ExportQueryDto): Promise<string> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     const fullName = user ? `${user.firstName} ${user.lastName}` : 'Inconnu';
@@ -512,7 +425,6 @@ export class ExportService {
     });
 
     const BOM = '\uFEFF';
-
     const userLine = `"Exporté par : ${this.sanitizeCsvField(fullName)}"`;
     const dateLine = `"Date d'export : ${new Date().toLocaleDateString('fr-FR')}"`;
 
@@ -557,19 +469,19 @@ export class ExportService {
       totalRevenus.toFixed(2).replace('.', ','),
       '',
     ].join(';');
-    return (
-        BOM +
-        [
-            userLine,
-            dateLine,
-            '',
-            headers,
-            ...rows,
-            '',
-            summary,
-            summaryIncome,
 
-        ].join('\n')
+    return (
+      BOM +
+      [
+        userLine,
+        dateLine,
+        '',
+        headers,
+        ...rows,
+        '',
+        summary,
+        summaryIncome,
+      ].join('\n')
     );
   }
 }
