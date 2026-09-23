@@ -22,7 +22,7 @@ import { PaymentModule } from './payment/payment.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: join(__dirname, '..', '.env'),
+      envFilePath: ['/etc/secrets/.env', join(__dirname, '..', '.env')],
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],

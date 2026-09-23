@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AngularSettings">
+    <option name="useTypesFromServer" value="true" />
+  </component>
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="17657580-ef20-45ed-803c-ed8e294a8f38" name="Changes" comment="" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="EmbeddingIndexingInfo">
+    <option name="cachedIndexableFilesCount" value="135" />
+    <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;emixam113&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;git@github.com:emixam113/app-depense.git&quot;,
+    &quot;accountId&quot;: &quot;f17f8d71-005f-49eb-96c6-d573ea764187&quot;
+  }
+}</component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file://$PROJECT_DIR$/backend/src/Notifications/Notification.controller.ts" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/backend/src/Notifications/Notification.module.ts" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/backend/src/Notifications/Notification.service.ts" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/backend/src/Notifications/Push.service.ts" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/backend/src/export/DTO/export-query.dto.ts" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/backend/src/export/export.service.ts" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/backend/src/methode/entity/method.entity.ts" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/frontend/src/components/AddExpense.tsx" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/frontend/src/pages/Settings.tsx" root0="SKIP_HIGHLIGHTING" />
+  </component>
+  <component name="McpProjectServerCommands">
+    <commands />
+    <urls />
+  </component>
+  <component name="MigrationScriptOptions">
+    <option name="ignoreImplicitObjects" value="true" />
+    <option name="ignoreSourceCode" value="false" />
+  </component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+    <option name="showToolbar" value="false" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 0
+}</component>
+  <component name="ProjectId" id="2zgARSwd47oWCIuPEF3I6vDaUWG" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;ToolWindow.Problems View.ShowToolbar&quot;: &quot;false&quot;,
+    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;javascript.nodejs.core.library.configured.version&quot;: &quot;22.19.0&quot;,
+    &quot;javascript.nodejs.core.library.typings.version&quot;: &quot;22.19.13&quot;,
+    &quot;javascript.preferred.runtime.type.id&quot;: &quot;node&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_interpreter_path&quot;: &quot;C:/Program Files/nodejs/node&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;prettierjs.PrettierConfiguration.Package&quot;: &quot;C:\\Users\\Antoi\\Desktop\\app suivie des dépenses et du budget\\backend\\node_modules\\prettier&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
+    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;C:\\Users\\Antoi\\Desktop\\app suivie des dépenses et du budget\\backend\\node_modules\\typescript\\lib&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  },
+  &quot;keyToStringList&quot;: {
+    &quot;DatabaseDriversLRU&quot;: [
+      &quot;postgresql&quot;
+    ]
+  }
+}</component>
+  <component name="RecapSpentCounter">
+    <option name="endsOfQuotaMs" value="1775412042763" />
+    <option name="spentUsd" value="0.00428455" />
+  </component>
+  <component name="RecapUselessUpdatesCounter">
+    <option name="suspendCountdown" value="0" />
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-9b0f141eb926-JavaScript-WS-253.32098.39" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="17657580-ef20-45ed-803c-ed8e294a8f38" name="Changes" comment="" />
+      <created>1752142334097</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1752142334097</updated>
+      <workItem from="1752142335216" duration="388000" />
+      <workItem from="1752143072596" duration="1141000" />
+      <workItem from="1752152397479" duration="4234000" />
+      <workItem from="1752160943087" duration="517000" />
+      <workItem from="1752165170191" duration="10000" />
+      <workItem from="1752228125066" duration="106000" />
+      <workItem from="1752423843317" duration="50000" />
+      <workItem from="1757241419447" duration="395000" />
+      <workItem from="1757247605913" duration="36000" />
+      <workItem from="1757247773004" duration="294000" />
+      <workItem from="1757248340562" duration="2873000" />
+      <workItem from="1757670137872" duration="2570000" />
+      <workItem from="1757673205558" duration="1718000" />
+      <workItem from="1757945245788" duration="372000" />
+      <workItem from="1757945851215" duration="189000" />
+      <workItem from="1757947832108" duration="1773000" />
+      <workItem from="1758049158263" duration="2602000" />
+      <workItem from="1758095711148" duration="1788000" />
+      <workItem from="1758530749557" duration="1881000" />
+      <workItem from="1758959264906" duration="8648000" />
+      <workItem from="1759081352203" duration="108000" />
+      <workItem from="1759758575581" duration="503000" />
+      <workItem from="1759759275795" duration="711000" />
+      <workItem from="1759760018013" duration="246000" />
+      <workItem from="1762292044248" duration="1461000" />
+      <workItem from="1762332549840" duration="1890000" />
+      <workItem from="1762337385969" duration="394000" />
+      <workItem from="1762869602338" duration="1975000" />
+      <workItem from="1763313032140" duration="360000" />
+      <workItem from="1763313479930" duration="3682000" />
+      <workItem from="1763317286713" duration="1880000" />
+      <workItem from="1763325440708" duration="594000" />
+      <workItem from="1763579935457" duration="3078000" />
+      <workItem from="1763636152338" duration="1273000" />
+      <workItem from="1763639200432" duration="1836000" />
+      <workItem from="1763677746375" duration="636000" />
+      <workItem from="1765028734145" duration="2570000" />
+      <workItem from="1765103477489" duration="760000" />
+      <workItem from="1765105421092" duration="981000" />
+      <workItem from="1765189223454" duration="1124000" />
+      <workItem from="1765192132167" duration="274000" />
+      <workItem from="1765192751394" duration="2411000" />
+      <workItem from="1765445447145" duration="959000" />
+      <workItem from="1765619866496" duration="3880000" />
+      <workItem from="1765707335816" duration="1095000" />
+      <workItem from="1765708527509" duration="93000" />
+      <workItem from="1768495350731" duration="239000" />
+      <workItem from="1768495787847" duration="100000" />
+      <workItem from="1768498324189" duration="239000" />
+      <workItem from="1768498994470" duration="140000" />
+      <workItem from="1772528471984" duration="5769000" />
+      <workItem from="1772556133788" duration="2410000" />
+      <workItem from="1772562821156" duration="7467000" />
+      <workItem from="1772617316885" duration="551000" />
+      <workItem from="1772617922940" duration="441000" />
+      <workItem from="1773054437243" duration="1000" />
+      <workItem from="1773223370175" duration="4172000" />
+      <workItem from="1774079784183" duration="2624000" />
+      <workItem from="1774262967535" duration="2530000" />
+      <workItem from="1774280495579" duration="117000" />
+      <workItem from="1774280663330" duration="3675000" />
+      <workItem from="1774299182435" duration="3562000" />
+      <workItem from="1774341761195" duration="3719000" />
+      <workItem from="1774345582612" duration="116000" />
+      <workItem from="1774345713843" duration="25000" />
+      <workItem from="1774345755023" duration="22000" />
+      <workItem from="1774345791619" duration="676000" />
+      <workItem from="1774377778664" duration="7013000" />
+      <workItem from="1774428653411" duration="614000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="UnknownFeatures">
+    <option featureType="dependencySupport" implementationName="javascript:npm:react" />
+    <option featureType="dependencySupport" implementationName="javascript:npm:prettier" />
+    <option featureType="dependencySupport" implementationName="executable:docker" />
+    <option featureType="dependencySupport" implementationName="javascript:npm:tailwindcss" />
+    <option featureType="dependencySupport" implementationName="javascript:npm:vite" />
+    <option featureType="dependencySupport" implementationName="executable:kubectl" />
+  </component>
+</project>
