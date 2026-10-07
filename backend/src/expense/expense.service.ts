@@ -25,6 +25,91 @@ export class ExpenseService {
   ) {}
 
   /**
+   * Méthode interne pour générer à la volée les récurrences du mois en cours
+   */
+  private async generateRecurringExpenses(userId: number): Promise<void> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) return;
+
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    const allExpenses = await this.expenseRepository.find({
+      where: { user: { id: userId } },
+      relations: ['category'],
+    });
+
+    const recurringTemplates = allExpenses.filter((expense) => {
+      if (!expense.isRecurring) return false;
+      const expenseDate = new Date(expense.date);
+      return (
+        expenseDate.getFullYear() < currentYear ||
+        (expenseDate.getFullYear() === currentYear &&
+          expenseDate.getMonth() < currentMonth)
+      );
+    });
+
+    let newlyCreatedCount = 0;
+
+    for (const template of recurringTemplates) {
+      const templateDate = new Date(template.date);
+      const targetDay = templateDate.getDate();
+
+      const lastDayOfCurrentMonth = new Date(
+        currentYear,
+        currentMonth + 1,
+        0,
+      ).getDate();
+      const actualDay = Math.min(targetDay, lastDayOfCurrentMonth);
+      const targetDate = new Date(
+        currentYear,
+        currentMonth,
+        actualDay,
+        templateDate.getHours(),
+        templateDate.getMinutes(),
+        templateDate.getSeconds(),
+      );
+
+      const startOfMonth = new Date(currentYear, currentMonth, 1);
+      const endOfMonth = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
+
+      const alreadyExists = allExpenses.some((expense) => {
+        const expDate = new Date(expense.date);
+        return (
+          expense.label === template.label &&
+          Number(expense.amount) === Number(template.amount) &&
+          expDate >= startOfMonth &&
+          expDate <= endOfMonth
+        );
+      });
+
+      if (!alreadyExists) {
+        if (!user.isPremium) {
+          const currentCount = allExpenses.length + newlyCreatedCount;
+          if (currentCount >= 50) {
+            break;
+          }
+        }
+
+        const newExpense = this.expenseRepository.create({
+          label: template.label,
+          amount: template.amount,
+          type: template.type,
+          isRecurring: true,
+          date: targetDate,
+          user: user,
+          category: template.category,
+        });
+
+        const saved = await this.expenseRepository.save(newExpense);
+        allExpenses.push(saved);
+        newlyCreatedCount++;
+      }
+    }
+  }
+
+  /**
    * Crée une dépense/revenu avec quota mensuel (Anti-Spam & Freemium)
    */
   async create(
@@ -83,6 +168,9 @@ export class ExpenseService {
    * Récupère les statistiques comparatives (Mois actuel vs Mois précédent)
    */
   async getComparisonStats(userId: number) {
+    // S'assure que les récurrences sont générées pour les stats et graphiques
+    await this.generateRecurringExpenses(userId);
+
     const now = new Date();
 
     const startOfCurrent = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -158,93 +246,16 @@ export class ExpenseService {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('Utilisateur introuvable');
 
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth();
+    // S'assure que les récurrences sont générées pour la liste
+    await this.generateRecurringExpenses(userId);
 
-    // 1. Récupérer toutes les transactions existantes de l'utilisateur
     const allExpenses = await this.expenseRepository.find({
       where: { user: { id: userId } },
       relations: ['category'],
       order: { date: 'DESC' },
     });
 
-    // 2. Identifier les transactions récursives d'origine (des mois précédents)
-    const recurringTemplates = allExpenses.filter((expense) => {
-      if (!expense.isRecurring) return false;
-      const expenseDate = new Date(expense.date);
-      return (
-        expenseDate.getFullYear() < currentYear ||
-        (expenseDate.getFullYear() === currentYear &&
-          expenseDate.getMonth() < currentMonth)
-      );
-    });
-
-    let newlyCreatedCount = 0;
-
-    for (const template of recurringTemplates) {
-      const templateDate = new Date(template.date);
-      const targetDay = templateDate.getDate();
-
-      // Gérer les fins de mois (ex: 31 si le mois actuel n'a que 30 jours)
-      const lastDayOfCurrentMonth = new Date(
-        currentYear,
-        currentMonth + 1,
-        0,
-      ).getDate();
-      const actualDay = Math.min(targetDay, lastDayOfCurrentMonth);
-      const targetDate = new Date(
-        currentYear,
-        currentMonth,
-        actualDay,
-        templateDate.getHours(),
-        templateDate.getMinutes(),
-        templateDate.getSeconds(),
-      );
-
-      // Vérifier si une transaction similaire existe déjà ce mois-ci
-      const startOfMonth = new Date(currentYear, currentMonth, 1);
-      const endOfMonth = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
-
-      const alreadyExists = allExpenses.some((expense) => {
-        const expDate = new Date(expense.date);
-        return (
-          expense.label === template.label &&
-          Number(expense.amount) === Number(template.amount) &&
-          expDate >= startOfMonth &&
-          expDate <= endOfMonth
-        );
-      });
-
-      // Si elle n'existe pas encore, on la génère
-      if (!alreadyExists) {
-        if (!user.isPremium) {
-          const currentCount = allExpenses.length + newlyCreatedCount;
-          if (currentCount >= 50) {
-            break;
-          }
-        }
-
-        const newExpense = this.expenseRepository.create({
-          label: template.label,
-          amount: template.amount,
-          type: template.type,
-          isRecurring: true,
-          date: targetDate,
-          user: user,
-          category: template.category,
-        });
-
-        const saved = await this.expenseRepository.save(newExpense);
-        allExpenses.unshift(saved);
-        newlyCreatedCount++;
-      }
-    }
-
-    // Retourner la liste triée par date décroissante
-    return allExpenses.sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-    );
+    return allExpenses;
   }
 
   async findOne(id: number, userId: number): Promise<Expense> {
