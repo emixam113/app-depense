@@ -34,7 +34,7 @@ import { AuthModule } from '../auth/auth.module'; // ✅
       }),
     }),
     UserModule,
-    forwardRef(() => AuthModule), // ✅ UTILISE forwardRef ici
+    forwardRef(() => AuthModule),
   ],
   controllers: [MailController],
   providers: [MailService],
