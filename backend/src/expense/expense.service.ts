@@ -35,11 +35,15 @@ export class ExpenseService {
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth();
 
+    const startOfMonth = new Date(currentYear, currentMonth, 1);
+    const endOfMonth = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
+
     const allExpenses = await this.expenseRepository.find({
       where: { user: { id: userId } },
       relations: ['category'],
     });
 
+    // 1. On récupère les modèles récurrents d'origine
     const recurringTemplates = allExpenses.filter((expense) => {
       if (!expense.isRecurring) return false;
       const expenseDate = new Date(expense.date);
@@ -49,8 +53,6 @@ export class ExpenseService {
           expenseDate.getMonth() < currentMonth)
       );
     });
-
-    let newlyCreatedCount = 0;
 
     for (const template of recurringTemplates) {
       const templateDate = new Date(template.date);
@@ -71,32 +73,25 @@ export class ExpenseService {
         templateDate.getSeconds(),
       );
 
-      const startOfMonth = new Date(currentYear, currentMonth, 1);
-      const endOfMonth = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
-
+      // 2. Vérification anti-doublon pour le mois en cours
       const alreadyExists = allExpenses.some((expense) => {
         const expDate = new Date(expense.date);
         return (
           expense.label === template.label &&
           Number(expense.amount) === Number(template.amount) &&
+          expense.type === template.type &&
           expDate >= startOfMonth &&
           expDate <= endOfMonth
         );
       });
 
+      // 3. Génération automatique sans blocage de quota
       if (!alreadyExists) {
-        if (!user.isPremium) {
-          const currentCount = allExpenses.length + newlyCreatedCount;
-          if (currentCount >= 50) {
-            break;
-          }
-        }
-
         const newExpense = this.expenseRepository.create({
           label: template.label,
           amount: template.amount,
           type: template.type,
-          isRecurring: true,
+          isRecurring: false, // La copie générée n'est pas un template pour le futur
           date: targetDate,
           user: user,
           category: template.category,
@@ -104,11 +99,9 @@ export class ExpenseService {
 
         const saved = await this.expenseRepository.save(newExpense);
         allExpenses.push(saved);
-        newlyCreatedCount++;
       }
     }
   }
-
   /**
    * Crée une dépense/revenu avec quota mensuel (Anti-Spam & Freemium)
    */
